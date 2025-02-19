@@ -6,6 +6,9 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+const scraperRoutes = require('./routes/scraperRoutes');
+app.use('/api', scraperRoutes);
+
 app.get('/', (req, res) => {
     res.send('Melon Music App API is running!');
 });
