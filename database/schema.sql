@@ -13,6 +13,8 @@ CREATE TABLE songs (
     title TEXT NOT NULL,
     artist_id INT REFERENCES artists(id) ON DELETE CASCADE,
     genre_id INT REFERENCES genres(id) ON DELETE SET NULL,
+    album TEXT,
+    art TEXT,
     youtube_url TEXT,
     genius_url TEXT,
     spotify_url TEXT,

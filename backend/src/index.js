@@ -15,3 +15,17 @@ app.get('/', (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+// Testing DB connection
+const pool = require('./config/db');
+
+app.get('/test-db', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT NOW() AS current_time;');
+        res.json({ success: true, db_time: result.rows[0].current_time });
+    } catch (error) {
+        console.error("❌ Database connection failed:", error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
