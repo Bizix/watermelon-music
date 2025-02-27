@@ -8,12 +8,10 @@ async function scrapeMelonCharts(genreCode = "DM0000") {
     const page = await browser.newPage();
 
     const genreUrl = `https://www.melon.com/chart/day/index.htm?classCd=${genreCode}`;
-    
     await page.goto(genreUrl, { waitUntil: 'networkidle2' });
 
     console.log(`🟢 Opened Melon chart page for genre: ${genreCode}`);
 
-    // Scraping logic remains the same...
     const songs = await page.evaluate(() => {
         const rankAr = document.querySelectorAll("#lst50 .rank, #lst100 .rank");
         const titleAr = document.querySelectorAll(".rank01>span>a");
@@ -34,10 +32,8 @@ async function scrapeMelonCharts(genreCode = "DM0000") {
 
     console.log(`✅ Successfully scraped ${songs.length} songs for genre: ${genreCode}`);
     await browser.close();
-
     return songs;
 }
-
 
 async function saveToDatabase(genreCode = "DM0000") {
     const client = await pool.connect();
@@ -49,85 +45,122 @@ async function saveToDatabase(genreCode = "DM0000") {
         await client.query('BEGIN'); // Start transaction
 
         // ✅ Ensure genre exists
-        let genreResult = await client.query(
+        const genreResult = await client.query(
             `INSERT INTO genres (code, name) 
              VALUES ($1, $2) 
              ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name 
              RETURNING id`,
             [genreCode, genreMap[genreCode]]
         );
-        let genreId = genreResult.rows[0].id;
+        const genreId = genreResult.rows[0].id;
 
-        // ✅ Get current rankings from the database (before we update)
-        const previousRankingsRes = await client.query(
-            `SELECT song_id FROM song_rankings WHERE genre_id = $1`,
-            [genreId]
-        );
-        const previousRankedSongs = new Set(previousRankingsRes.rows.map(row => row.song_id));
+        // ✅ Fetch all existing artists to prevent duplicates
+        const existingArtistsRes = await client.query(`SELECT id, name FROM artists`);
+        const existingArtists = new Map(existingArtistsRes.rows.map(a => [a.name, a.id]));
 
         // ✅ Insert or update artists
         const artistIds = {};
         for (const song of scrapedSongs) {
-            let artistRes = await client.query(
-                `INSERT INTO artists (name) VALUES ($1) 
-                 ON CONFLICT (name) DO NOTHING RETURNING id`,
-                [song.artist]
-            );
-
-            artistIds[song.artist] = artistRes.rows[0]?.id ||
-                (await client.query('SELECT id FROM artists WHERE name=$1', [song.artist])).rows[0]?.id;
-        }
-
-        // ✅ Insert or update songs and retrieve correct `song_id`
-        const songIds = {};
-        for (const song of scrapedSongs) {
-            let songRes = await client.query(
-                `INSERT INTO songs (title, artist_id, album, art, youtube_url, genius_url, spotify_url, apple_music_url, scraped_at) 
-                 VALUES ($1, $2, $3, $4, NULL, NULL, NULL, NULL, NOW()) 
-                 ON CONFLICT (title, artist_id) DO UPDATE 
-                 SET scraped_at = NOW() RETURNING id;`,
-                [song.title, artistIds[song.artist], song.album, song.art]
-            );
-
-            songIds[song.title] = songRes.rows[0].id;
-        }
-
-        // ✅ Insert or update song rankings per genre
-        const currentlyRankedSongs = new Set();
-        for (const song of scrapedSongs) {
-            let songId = songIds[song.title];
-            currentlyRankedSongs.add(songId);
-
-            await client.query(
-                `INSERT INTO song_rankings (song_id, genre_id, rank, scraped_at) 
-                 VALUES ($1, $2, $3, NOW()) 
-                 ON CONFLICT (song_id, genre_id) DO UPDATE 
-                 SET rank = EXCLUDED.rank, scraped_at = NOW();`,
-                [songId, genreId, song.rank]
-            );
-        }
-
-        // ✅ Set rank to "N/A" for songs that were previously in the chart but are now missing
-        for (const songId of previousRankedSongs) {
-            if (!currentlyRankedSongs.has(songId)) {
-                await client.query(
-                    `UPDATE song_rankings 
-                     SET rank = 'N/A', scraped_at = NOW() 
-                     WHERE song_id = $1 AND genre_id = $2;`,
-                    [songId, genreId]
+            if (!existingArtists.has(song.artist)) {
+                const artistRes = await client.query(
+                    `INSERT INTO artists (name) VALUES ($1) 
+                     ON CONFLICT (name) DO NOTHING RETURNING id`,
+                    [song.artist]
                 );
-                console.log(`⚠️ Song ID ${songId} fell off the rankings, updated to N/A.`);
+                if (artistRes.rows.length > 0) {
+                    artistIds[song.artist] = artistRes.rows[0].id;
+                    existingArtists.set(song.artist, artistRes.rows[0].id);
+                } else {
+                    artistIds[song.artist] = existingArtists.get(song.artist);
+                }
+            } else {
+                artistIds[song.artist] = existingArtists.get(song.artist);
             }
         }
 
-        await client.query('COMMIT'); // ✅ Commit transaction
+        // ✅ Fetch existing songs to prevent duplicates
+        const existingSongsRes = await client.query(`SELECT id, title, artist_id FROM songs`);
+        const existingSongs = new Map(existingSongsRes.rows.map(s => [`${s.title}-${s.artist_id}`, s.id]));
+
+        // ✅ Insert or update songs
+        const songIds = {};
+        for (const song of scrapedSongs) {
+            const songKey = `${song.title}-${artistIds[song.artist]}`;
+
+            if (!existingSongs.has(songKey)) {
+                const songRes = await client.query(
+                    `INSERT INTO songs (title, artist_id, album, art, youtube_url, genius_url, spotify_url, apple_music_url, scraped_at) 
+                     VALUES ($1, $2, $3, $4, NULL, NULL, NULL, NULL, NOW()) 
+                     RETURNING id;`,
+                    [song.title, artistIds[song.artist], song.album, song.art]
+                );
+                songIds[songKey] = songRes.rows[0].id;
+                existingSongs.set(songKey, songRes.rows[0].id);
+            } else {
+                songIds[songKey] = existingSongs.get(songKey);
+            }
+        }
+
+        // ✅ Fetch previous rankings from the database
+        const previousRankingsRes = await client.query(
+            `SELECT song_id FROM song_rankings WHERE genre_id = $1 AND rank != 'N/A'`,
+            [genreId]
+        );
+        const previousRankings = new Set(previousRankingsRes.rows.map(row => row.song_id));
+
+        // ✅ Track songs in the current scrape
+        const currentlyRankedSongs = new Set();
+
+        // ✅ Insert or update rankings for songs found in the scrape
+        for (const song of scrapedSongs) {
+            const songId = songIds[`${song.title}-${artistIds[song.artist]}`];
+            currentlyRankedSongs.add(songId);
+
+            // ✅ Check if song already has a ranking
+            const existingRankingRes = await client.query(
+                `SELECT rank FROM song_rankings WHERE song_id = $1 AND genre_id = $2`,
+                [songId, genreId]
+            );
+
+            if (existingRankingRes.rows.length > 0) {
+                await client.query(
+                    `UPDATE song_rankings 
+             SET rank = $1, scraped_at = NOW() 
+             WHERE song_id = $2 AND genre_id = $3;`,
+                    [song.rank, songId, genreId]
+                );
+            } else {
+                await client.query(
+                    `INSERT INTO song_rankings (song_id, genre_id, rank, scraped_at) 
+             VALUES ($1, $2, $3, NOW());`,
+                    [songId, genreId, song.rank]
+                );
+            }
+        }
+
+        // ✅ Immediately set rank to "N/A" for missing songs
+        for (const songId of previousRankings) {
+            if (!currentlyRankedSongs.has(songId)) {
+                await client.query(
+                    `UPDATE song_rankings 
+             SET rank = 'N/A', scraped_at = NOW() 
+             WHERE song_id = $1 AND genre_id = $2;`,
+                    [songId, genreId]
+                );
+                console.log(`⚠️ Song ID ${songId} dropped off the rankings, updated to N/A.`);
+            }
+        }
+
+
+
+        await client.query('COMMIT');
         console.log(`✅ Successfully updated rankings for genre: ${genreCode}!`);
 
     } catch (error) {
-        await client.query('ROLLBACK'); // Rollback on error
+        await client.query('ROLLBACK');
         console.error("❌ Error saving to database:", error);
     } finally {
-        client.release(); // ✅ Release connection
+        client.release();
     }
 }
 
@@ -148,9 +181,7 @@ const genreMap = {
     "GN1800": "New Age",
     "GN1900": "J-Pop",
     "GN2200": "Children",
-    "GN2400" : "Korean Traditional",
+    "GN2400": "Korean Traditional",
 };
-
-
 
 module.exports = { scrapeMelonCharts, saveToDatabase };
