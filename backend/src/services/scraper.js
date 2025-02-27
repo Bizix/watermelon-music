@@ -44,7 +44,7 @@ async function saveToDatabase(genreCode = "DM0000") {
 
     try {
         console.log(`🟢 Processing genre: ${genreCode}, scraping songs...`);
-        const songs = await scrapeMelonCharts(genreCode);
+        const scrapedSongs = await scrapeMelonCharts(genreCode);
 
         await client.query('BEGIN'); // Start transaction
 
@@ -58,9 +58,16 @@ async function saveToDatabase(genreCode = "DM0000") {
         );
         let genreId = genreResult.rows[0].id;
 
+        // ✅ Get current rankings from the database (before we update)
+        const previousRankingsRes = await client.query(
+            `SELECT song_id FROM song_rankings WHERE genre_id = $1`,
+            [genreId]
+        );
+        const previousRankedSongs = new Set(previousRankingsRes.rows.map(row => row.song_id));
+
         // ✅ Insert or update artists
         const artistIds = {};
-        for (const song of songs) {
+        for (const song of scrapedSongs) {
             let artistRes = await client.query(
                 `INSERT INTO artists (name) VALUES ($1) 
                  ON CONFLICT (name) DO NOTHING RETURNING id`,
@@ -71,9 +78,9 @@ async function saveToDatabase(genreCode = "DM0000") {
                 (await client.query('SELECT id FROM artists WHERE name=$1', [song.artist])).rows[0]?.id;
         }
 
-        // ✅ Insert or update songs and retrieve `song_id`
+        // ✅ Insert or update songs and retrieve correct `song_id`
         const songIds = {};
-        for (const song of songs) {
+        for (const song of scrapedSongs) {
             let songRes = await client.query(
                 `INSERT INTO songs (title, artist_id, album, art, youtube_url, genius_url, spotify_url, apple_music_url, scraped_at) 
                  VALUES ($1, $2, $3, $4, NULL, NULL, NULL, NULL, NOW()) 
@@ -86,8 +93,11 @@ async function saveToDatabase(genreCode = "DM0000") {
         }
 
         // ✅ Insert or update song rankings per genre
-        for (const song of songs) {
-            let songId = songIds[song.title];  // ✅ Use correct `song_id`
+        const currentlyRankedSongs = new Set();
+        for (const song of scrapedSongs) {
+            let songId = songIds[song.title];
+            currentlyRankedSongs.add(songId);
+
             await client.query(
                 `INSERT INTO song_rankings (song_id, genre_id, rank, scraped_at) 
                  VALUES ($1, $2, $3, NOW()) 
@@ -95,6 +105,19 @@ async function saveToDatabase(genreCode = "DM0000") {
                  SET rank = EXCLUDED.rank, scraped_at = NOW();`,
                 [songId, genreId, song.rank]
             );
+        }
+
+        // ✅ Set rank to "N/A" for songs that were previously in the chart but are now missing
+        for (const songId of previousRankedSongs) {
+            if (!currentlyRankedSongs.has(songId)) {
+                await client.query(
+                    `UPDATE song_rankings 
+                     SET rank = 'N/A', scraped_at = NOW() 
+                     WHERE song_id = $1 AND genre_id = $2;`,
+                    [songId, genreId]
+                );
+                console.log(`⚠️ Song ID ${songId} fell off the rankings, updated to N/A.`);
+            }
         }
 
         await client.query('COMMIT'); // ✅ Commit transaction
@@ -107,6 +130,7 @@ async function saveToDatabase(genreCode = "DM0000") {
         client.release(); // ✅ Release connection
     }
 }
+
 
 // ✅ Map genre codes to readable names
 const genreMap = {
