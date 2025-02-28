@@ -1,1 +1,29 @@
 @import "tailwindcss";
+
+/* Global Styles */
+body {
+    @apply bg-gray-900 text-white;
+  }
+  
+  /* Custom Tailwind Overrides */
+  .text-primary {
+    color: rgb(0, 210, 2);
+  }
+  
+  .bg-primary {
+    background-color: rgb(0, 210, 2);
+  }
+  
+  /* Table Styling */
+  .table-container {
+    @apply bg-gray-800 text-white p-6 rounded-lg shadow-lg;
+  }
+  
+  .table-header {
+    @apply bg-green-700 text-white;
+  }
+  
+  .table-row {
+    @apply border-b border-gray-700 hover:bg-gray-800;
+  }
+  

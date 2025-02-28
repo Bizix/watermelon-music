@@ -13,29 +13,61 @@ async function scrapeMelonCharts(genreCode = "DM0000") {
     console.log(`🟢 Opened Melon chart page for genre: ${genreCode}`);
 
     const songs = await page.evaluate(() => {
-        const rankAr = document.querySelectorAll("#lst50 .rank, #lst100 .rank");
-        const titleAr = document.querySelectorAll(".rank01>span>a");
-        const artistAr = document.querySelectorAll(".rank02>span>a");
-        const albumAr = document.querySelectorAll(".rank03>a");
-        const artAr = document.querySelectorAll(".image_typeAll img");
-        const keyAr = document.querySelectorAll("tr[data-song-no]");
-
-        return Array.from(rankAr).map((ranking, index) => ({
-            rank: parseInt(ranking.textContent.trim(), 10),
-            title: titleAr[index]?.textContent.trim() || "Unknown Title",
-            artist: artistAr[index]?.textContent.trim() || "Unknown Artist",
-            album: albumAr[index]?.textContent.trim() || "Unknown Album",
-            art: artAr[index]?.getAttribute("src")?.trim() || "No Image Found",
-            key: keyAr[index]?.getAttribute("data-song-no") || "000000",
-        }));
+        const rankAr = document.querySelectorAll(".lst50 .rank, .lst100 .rank"); // ✅ Include .lst100
+        const titleAr = document.querySelectorAll(".lst50 .rank01>span>a, .lst100 .rank01>span>a");
+        const artistContainers = document.querySelectorAll(".lst50 .rank02, .lst100 .rank02"); // ✅ Include .lst100
+        const albumAr = document.querySelectorAll(".lst50 .rank03>a, .lst100 .rank03>a");
+        const artAr = document.querySelectorAll(".lst50 .image_typeAll img, .lst100 .image_typeAll img");
+        const keyAr = document.querySelectorAll(".lst50[data-song-no], .lst100[data-song-no]"); // ✅ Fix song key selection
+    
+        return Array.from(rankAr).map((ranking, index) => {
+            const rank = parseInt(ranking.textContent.trim(), 10);
+            const title = titleAr[index]?.textContent.trim() || "Unknown Title";
+    
+            // ✅ Extract artists properly from both lists
+            const artistContainer = artistContainers[index];  
+            let artist = "Unknown Artist";
+            if (artistContainer) {
+                const artistLinks = artistContainer.querySelectorAll("a");
+                if (artistLinks.length > 0) {
+                    const artistNames = new Set(Array.from(artistLinks).map(a => a.textContent.trim()));
+                    artist = Array.from(artistNames).join(", ");
+                } else {
+                    artist = artistContainer.textContent.trim();
+                }
+            }
+    
+            const album = albumAr[index]?.textContent.trim() || "Unknown Album";
+            const art = artAr[index]?.getAttribute("src")?.trim() || "No Image Found";
+            const key = keyAr[index]?.getAttribute("data-song-no") || "000000";
+    
+            return { rank, title, artist, album, art, key };
+        });
     });
+    
+    
 
-    console.log(`✅ Successfully scraped ${songs.length} songs for genre: ${genreCode}`);
+    // // 🛠 Debugging logs
+    // console.log(`✅ Successfully scraped ${songs.length} songs for genre: ${genreCode}`);
+
+    // if (songs.length === 0) {
+    //     console.warn(`⚠️ Warning: No songs were scraped for genre: ${genreCode}!`);
+    // } else {
+    //     console.log("🔍 Sample data from scraping:");
+    //     console.table(songs.slice(0, 50));  // Print the first 50 songs for verification
+    //     console.table(songs.slice(50, 100));  // Print the last 50 songs for verification
+    // }
+
     await browser.close();
     return songs;
 }
 
+
+
 async function saveToDatabase(genreCode = "DM0000") {
+    console.log(`🟢 saveToDatabase() started for genre: ${genreCode}`);
+
+
     const client = await pool.connect();
 
     try {

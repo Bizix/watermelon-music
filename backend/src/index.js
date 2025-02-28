@@ -9,6 +9,10 @@ app.use(cors());
 const scraperRoutes = require('./routes/scraperRoutes');
 app.use('/api', scraperRoutes);
 
+const rankingsRoutes = require('./routes/rankingsRoutes');
+app.use('/api', rankingsRoutes);
+
+
 app.get('/', (req, res) => {
     res.send('Melon Music App API is running!');
 });
