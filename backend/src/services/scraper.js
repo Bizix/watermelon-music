@@ -1,5 +1,7 @@
 const puppeteer = require('puppeteer');
 const pool = require('../config/db');
+const cache = new Map();
+
 
 async function scrapeMelonCharts(genreCode = "DM0000") {
     console.log(`🚀 Scraping Melon chart for genre: ${genreCode}...`);
@@ -19,13 +21,13 @@ async function scrapeMelonCharts(genreCode = "DM0000") {
         const albumAr = document.querySelectorAll(".lst50 .rank03>a, .lst100 .rank03>a");
         const artAr = document.querySelectorAll(".lst50 .image_typeAll img, .lst100 .image_typeAll img");
         const keyAr = document.querySelectorAll(".lst50[data-song-no], .lst100[data-song-no]"); // ✅ Fix song key selection
-    
+
         return Array.from(rankAr).map((ranking, index) => {
             const rank = parseInt(ranking.textContent.trim(), 10);
             const title = titleAr[index]?.textContent.trim() || "Unknown Title";
-    
+
             // ✅ Extract artists properly from both lists
-            const artistContainer = artistContainers[index];  
+            const artistContainer = artistContainers[index];
             let artist = "Unknown Artist";
             if (artistContainer) {
                 const artistLinks = artistContainer.querySelectorAll("a");
@@ -36,16 +38,16 @@ async function scrapeMelonCharts(genreCode = "DM0000") {
                     artist = artistContainer.textContent.trim();
                 }
             }
-    
+
             const album = albumAr[index]?.textContent.trim() || "Unknown Album";
             const art = artAr[index]?.getAttribute("src")?.trim() || "No Image Found";
             const key = keyAr[index]?.getAttribute("data-song-no") || "000000";
-    
+
             return { rank, title, artist, album, art, key };
         });
     });
-    
-    
+
+
 
     // // 🛠 Debugging logs
     // console.log(`✅ Successfully scraped ${songs.length} songs for genre: ${genreCode}`);
@@ -65,6 +67,16 @@ async function scrapeMelonCharts(genreCode = "DM0000") {
 
 
 async function saveToDatabase(genreCode = "DM0000") {
+    console.log(`🟢 Checking cache for genre: ${genreCode}`);
+
+    // 1️⃣ Check if data is in cache and not expired
+    const cachedData = cache.get(genreCode);
+    if (cachedData && (Date.now() - cachedData.timestamp < 24 * 60 * 60 * 1000)) {
+        console.log(`✅ Loaded rankings from cache for genre: ${genreCode}`);
+        return cachedData.data;
+    }
+
+    console.log(`🟢 Cache expired or missing. Fetching new data...`);
     console.log(`🟢 saveToDatabase() started for genre: ${genreCode}`);
 
 
@@ -85,6 +97,7 @@ async function saveToDatabase(genreCode = "DM0000") {
             [genreCode, genreMap[genreCode]]
         );
         const genreId = genreResult.rows[0].id;
+        
 
         // ✅ Fetch all existing artists to prevent duplicates
         const existingArtistsRes = await client.query(`SELECT id, name FROM artists`);
@@ -183,10 +196,19 @@ async function saveToDatabase(genreCode = "DM0000") {
             }
         }
 
+        // ✅ Update last_updated timestamp for the genre
+        await client.query(`
+            UPDATE genres 
+            SET last_updated = NOW() 
+            WHERE code = $1;
+        `, [genreCode]);
 
+        // ✅ Store in cache (expires in 24h)
+        cache.set(genreCode, { data: scrapedSongs, timestamp: Date.now() });
 
         await client.query('COMMIT');
         console.log(`✅ Successfully updated rankings for genre: ${genreCode}!`);
+        return scrapedSongs;
 
     } catch (error) {
         await client.query('ROLLBACK');
