@@ -4,8 +4,12 @@
     
     <!-- Genre Selector Component -->
     <GenreSelector @genre-selected="fetchRankings" />
+
+    <!-- ✅ Use Loading Bar Component -->
+    <LoadingBar :isLoading="isLoading" message="Fetching latest rankings, please wait..." />
+
     
-    <table class="w-full border-collapse mt-4">
+    <table v-if="!isLoading"class="w-full border-collapse mt-4">
       <thead>
         <tr class="bg-green-700 text-white">
           <th class="py-2 px-4">Rank</th>
@@ -34,16 +38,19 @@
 
 <script>
 import GenreSelector from "@/components/GenreSelector.vue";
+import LoadingBar from "@/components/LoadingBar.vue"; 
 import axios from "axios";
 
 export default {
   components: {
     GenreSelector,
+    LoadingBar,  
   },
   data() {
     return {
       selectedGenre: "Top 100", // Default to Top 100
       rankings: [],
+      isLoading: false,
       genreMap: {
         "DM0000": "Top 100",
         "GN0100": "Ballads",
@@ -65,20 +72,24 @@ export default {
   },
   methods: {
     async fetchRankings(genreCode) {
-  try {
-    const response = await axios.get(`http://localhost:5000/api/rankings?genre=${genreCode}`);
-    this.rankings = response.data
-      .map(song => ({
-        ...song,
-        rank: Number(song.rank),  // ✅ Ensure rank is treated as a number
-      }))
-      .sort((a, b) => a.rank - b.rank);  // ✅ Sort numerically
-    this.selectedGenre = this.genreMap[genreCode] || "Unknown Genre";
-  } catch (error) {
-    console.error("Error fetching rankings:", error);
-  }
-}
+      try {
+        this.isLoading = true; // ✅ FIXED: Start loading bar before fetching
+        const response = await axios.get(`http://localhost:5000/api/rankings?genre=${genreCode}`);
 
+        this.rankings = response.data
+          .map(song => ({
+            ...song,
+            rank: Number(song.rank), // ✅ Ensure rank is treated as a number
+          }))
+          .sort((a, b) => a.rank - b.rank); // ✅ Sort numerically
+
+        this.selectedGenre = this.genreMap[genreCode] || "Unknown Genre";
+      } catch (error) {
+        console.error("Error fetching rankings:", error);
+      } finally {
+        this.isLoading = false; // ✅ FIXED: Ensure the loading bar disappears after fetching
+      }
+    }
   },
   mounted() {
     this.fetchRankings("DM0000"); // ✅ Load "Top 100" by default

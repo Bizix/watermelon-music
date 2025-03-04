@@ -4,6 +4,13 @@ const router = express.Router();
 const { saveToDatabase } = require('../services/scraper');
 
 const cache = new Map(); // 🛠 In-memory cache
+let scrapingStatus = {}; // 🟢 Tracks if scraping is in progress per genre
+
+// ✅ Check scraping status
+router.get('/scrape-status', (req, res) => {
+    const genreCode = req.query.genre || "DM0000";
+    res.json({ scraping: scrapingStatus[genreCode] || false });
+});
 
 router.get('/rankings', async (req, res) => {
     const genreCode = req.query.genre || "DM0000";
@@ -49,7 +56,11 @@ router.get('/rankings', async (req, res) => {
         }
 
         console.log(`🔄 Scraping needed for genre: ${genreCode}`);
+        scrapingStatus[genreCode] = true; // ✅ Set scraping status
+
         const newSongs = await saveToDatabase(genreCode);
+
+        scrapingStatus[genreCode] = false; // ✅ Scraping is done
 
         // 4️⃣ Fetch updated data from DB after scraping
         const updatedRankings = await client.query(`
@@ -66,6 +77,7 @@ router.get('/rankings', async (req, res) => {
 
         res.json(updatedRankings.rows);
     } catch (error) {
+        scrapingStatus[genreCode] = false; // ✅ Reset scraping status if an error occurs
         console.error("❌ Error fetching rankings:", error);
         res.status(500).json({ success: false, error: error.message });
     } finally {
