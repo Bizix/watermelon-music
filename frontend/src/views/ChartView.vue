@@ -1,40 +1,51 @@
 <template>
-  <div class="bg-gray-900 text-white p-6 rounded-lg max-w-4xl mx-auto shadow-lg">
-    <h1 class="text-center text-2xl font-bold text-green-500">Melon Chart - {{ selectedGenre }}</h1>
-    
-    <!-- Genre Selector Component -->
+  <div class="bg-gray-900 text-white p-6 rounded-lg max-w-6xl mx-auto shadow-lg">
+    <h1 class="text-center text-3xl font-extrabold text-green-500 mb-4">
+      Melon Chart - {{ selectedGenre }}
+    </h1>
+
+    <!-- ✅ Updated Genre Selector -->
     <GenreSelector @genre-selected="fetchRankings" />
 
-    <!-- ✅ Use Loading Bar Component -->
+    <!-- ✅ Loading Bar -->
     <LoadingBar :isLoading="isLoading" message="Fetching latest rankings, please wait..." />
 
-    
-    <table v-if="!isLoading"class="w-full border-collapse mt-4">
-      <thead>
-        <tr class="bg-green-700 text-white">
-          <th class="py-2 px-4">Rank</th>
-          <th class="py-2 px-4">Title</th>
-          <th class="py-2 px-4">Artist</th>
-          <th class="py-2 px-4">Album</th>
-          <th class="py-2 px-4">Links</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="song in rankings" :key="song.id" class="border-b border-gray-700 hover:bg-gray-800">
-          <td class="py-2 px-4 text-center">{{ song.rank }}</td>
-          <td class="py-2 px-4">{{ song.title }}</td>
-          <td class="py-2 px-4">{{ song.artist }}</td>
-          <td class="py-2 px-4">{{ song.album }}</td>
-          <td class="py-2 px-4 space-x-2">
-            <a v-if="song.youtube_url" :href="song.youtube_url" target="_blank" class="text-blue-500">YouTube</a>
-            <a v-if="song.genius_url" :href="song.genius_url" target="_blank" class="text-blue-500">Genius</a>
-            <a v-if="song.spotify_url" :href="song.spotify_url" target="_blank" class="text-blue-500">Spotify</a>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <!-- ✅ Responsive Table -->
+    <div class="overflow-x-auto">
+      <table v-if="!isLoading" class="w-full border-collapse mt-4 bg-gray-800 rounded-lg shadow-md">
+        <thead>
+          <tr class="bg-green-700 text-white">
+            <th class="py-3 px-4 text-left">Rank</th>
+            <th class="py-3 px-4 text-left">Title</th>
+            <th class="py-3 px-4 text-left">Artist</th>
+            <th class="py-3 px-4 text-left">Album</th>
+            <th class="py-3 px-4 text-center">Links</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="song in rankings" :key="song.id" class="border-b border-gray-700 hover:bg-gray-700 transition duration-200">
+            <td class="py-3 px-4 font-semibold text-center">{{ song.rank }}</td>
+            <td class="py-3 px-4">{{ song.title }}</td>
+            <td class="py-3 px-4">{{ song.artist }}</td>
+            <td class="py-3 px-4">{{ song.album }}</td>
+            <td class="py-3 px-4 flex justify-center space-x-2">
+              <a v-if="song.youtube_url" :href="song.youtube_url" target="_blank" class="text-red-400 hover:text-red-600 transition">
+                🎥 YouTube
+              </a>
+              <a v-if="song.genius_url" :href="song.genius_url" target="_blank" class="text-yellow-400 hover:text-yellow-600 transition">
+                🎵 Genius
+              </a>
+              <a v-if="song.spotify_url" :href="song.spotify_url" target="_blank" class="text-green-400 hover:text-green-600 transition">
+                🎶 Spotify
+              </a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </template>
+
 
 <script>
 import GenreSelector from "@/components/GenreSelector.vue";
