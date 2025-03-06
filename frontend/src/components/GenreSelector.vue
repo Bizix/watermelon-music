@@ -1,16 +1,20 @@
 <template>
-  <div class="flex justify-center space-x-3 bg-gray-800 p-3 rounded-lg shadow-md">
-    <button
-      v-for="(label, code) in genreMap"
-      :key="code"
-      @click="selectGenre(code)"
-      :class="[
-        'px-4 py-2 rounded-lg transition duration-300',
-        selectedGenre === code ? 'bg-green-500 text-white font-semibold shadow-lg' : 'bg-gray-700 text-gray-300 hover:bg-green-400 hover:text-white'
-      ]"
-    >
-      {{ label }}
-    </button>
+  <div class="bg-gray-800 p-2 rounded-lg shadow-md w-full">
+    <div class="flex flex-wrap justify-center gap-2 px-2 overflow-hidden">
+      <button
+        v-for="(label, code) in genreMap"
+        :key="code"
+        @click="selectGenre(code)"
+        :class="[ 
+          'px-2 py-1 text-xs font-medium rounded transition duration-200',
+          selectedGenre === code
+            ? 'bg-green-500 text-white shadow-md'
+            : 'bg-gray-700 text-gray-300 hover:bg-green-400 hover:text-white'
+        ]"
+      >
+        {{ label }}
+      </button>
+    </div>
   </div>
 </template>
 
@@ -46,4 +50,3 @@ export default {
   },
 };
 </script>
-

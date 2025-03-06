@@ -1,19 +1,22 @@
 <template>
-  <div class="bg-gray-900 text-white p-6 rounded-lg max-w-6xl mx-auto shadow-lg">
+  <div class="bg-gray-900 text-white p-6 rounded-lg w-full mx-auto shadow-lg">
     <h1 class="text-center text-3xl font-extrabold text-green-500 mb-4">
       Melon Chart - {{ selectedGenre }}
     </h1>
 
-    <!-- ✅ Updated Genre Selector -->
-  <div v-if="!isLoading">
-    <GenreSelector @genre-selected="fetchRankings" />
-  </div>
+    <!-- ✅ Ensure GenreSelector matches ChartView width -->
+    <div v-if="!isLoading" class="w-full">
+      <GenreSelector @genre-selected="fetchRankings" class="w-full" />
+    </div>
 
     <!-- ✅ Loading Bar -->
     <LoadingBar :isLoading="isLoading" message="Fetching latest rankings, please wait..." />
 
-    <!-- ✅ Scrollable container for 100 songs -->
-    <div v-if="!isLoading" class="overflow-y-auto max-h-[75vh] px-4 space-y-4">
+    <!-- ✅ Scrollable song list (Fix width issue) -->
+    <div 
+      v-if="!isLoading" 
+      class="overflow-y-auto max-h-[75vh] scrollbar-hidden w-full"
+    >
       <SongCard 
         v-for="song in rankings" 
         :key="song.id" 
@@ -22,6 +25,22 @@
     </div>
   </div>
 </template>
+
+<style scoped>
+/* ✅ Hides scrollbar for WebKit browsers (Chrome, Safari, Edge) */
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+/* ✅ Prevents scrollbar from affecting width (for Firefox and Edge) */
+.scrollbar-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+</style>
+
+
+
 
 <script>
 import GenreSelector from "@/components/GenreSelector.vue";

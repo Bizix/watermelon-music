@@ -1,6 +1,9 @@
 import { createApp } from "vue";
 import PrimeVue from "primevue/config";
 import Aura from "@primeuix/themes/aura"; // ✅ Choose a PrimeUIX theme
+import 'primeicons/primeicons.css';
+import "@fortawesome/fontawesome-free/css/all.min.css";
+
 
 
 import "./output.css";
