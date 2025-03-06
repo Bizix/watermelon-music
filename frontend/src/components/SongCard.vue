@@ -1,6 +1,6 @@
 <template>
   <div 
-    class="w-full flex flex-col bg-gray-800 text-white p-4 rounded-lg shadow-lg border border-gray-700 
+    class="w-full flex flex-col bg-gray-800 text-white p-4 shadow-lg border border-gray-700 
            hover:bg-gray-700 transition-colors"
     :class="{ 'bg-gray-700': isExpanded }"
   >

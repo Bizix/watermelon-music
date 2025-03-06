@@ -1,64 +1,60 @@
 <template>
-  <div class="bg-gray-900 text-white p-6 rounded-lg w-full mx-auto shadow-lg">
+  <div class="bg-gray-900 pt-3 text-white w-full mx-auto shadow-lg flex flex-col h-screen">
     <h1 class="text-center text-3xl font-extrabold text-green-500 mb-4">
-      Melon Chart - {{ selectedGenre }}
+      Melon Chart - {{ genreMap[selectedGenre] || "Unknown Genre" }}
     </h1>
 
-    <!-- ✅ Ensure GenreSelector matches ChartView width -->
+    <!-- ✅ Ensure GenreSelector remains at the top -->
     <div v-if="!isLoading" class="w-full">
-      <GenreSelector @genre-selected="fetchRankings" class="w-full" />
+      <GenreSelector 
+        :selectedGenre="selectedGenre"
+        @genre-selected="handleGenreChange"
+        class="w-full"
+      />
     </div>
 
     <!-- ✅ Loading Bar -->
     <LoadingBar :isLoading="isLoading" message="Fetching latest rankings, please wait..." />
 
-    <!-- ✅ Scrollable song list (Fix width issue) -->
+    <!-- ✅ Scrollable song list (Takes remaining height) -->
     <div 
       v-if="!isLoading" 
-      class="overflow-y-auto max-h-[75vh] scrollbar-hidden w-full"
+      ref="songList"
+      class="overflow-y-auto flex-grow w-full scrollbar-hidden"
+      @scroll="checkScroll"
     >
       <SongCard 
-        v-for="song in rankings" 
+        v-for="song in filteredRankings" 
         :key="song.id" 
         :song="song" 
       />
     </div>
+
+    <!-- ✅ Extracted Scroll Indicator Component -->
+    <ScrollIndicator :showScrollIndicator="showScrollIndicator" />
   </div>
 </template>
-
-<style scoped>
-/* ✅ Hides scrollbar for WebKit browsers (Chrome, Safari, Edge) */
-.scrollbar-hidden::-webkit-scrollbar {
-  display: none;
-}
-
-/* ✅ Prevents scrollbar from affecting width (for Firefox and Edge) */
-.scrollbar-hidden {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-</style>
-
-
-
 
 <script>
 import GenreSelector from "@/components/GenreSelector.vue";
 import LoadingBar from "@/components/LoadingBar.vue";
 import SongCard from "@/components/SongCard.vue";
-import axios from "axios";
+import ScrollIndicator from "@/components/ScrollIndicator.vue";
+import { fetchRankings } from "@/api/fetchRankings.ts";
 
 export default {
   components: {
     GenreSelector,
     LoadingBar,
-    SongCard
+    SongCard,
+    ScrollIndicator
   },
   data() {
     return {
-      selectedGenre: "Top 100",
+      selectedGenre: "DM0000", // ✅ Moved state here
       rankings: [],
       isLoading: false,
+      showScrollIndicator: true, // ✅ Scroll Indicator Visibility
       genreMap: {
         "DM0000": "Top 100",
         "GN0100": "Ballads",
@@ -78,23 +74,28 @@ export default {
       },
     };
   },
+  computed: {
+    filteredRankings() {
+      return this.rankings.filter(song => !isNaN(song.rank));
+    }
+  },
   methods: {
     async fetchRankings(genreCode) {
-      try {
-        this.isLoading = true;
-        const response = await axios.get(`http://localhost:5000/api/rankings?genre=${genreCode}`);
-        this.rankings = response.data
-          .map(song => ({
-            ...song,
-            rank: Number(song.rank),
-          }))
-          .sort((a, b) => a.rank - b.rank);
-        this.selectedGenre = this.genreMap[genreCode] || "Unknown Genre";
-      } catch (error) {
-        console.error("Error fetching rankings:", error);
-      } finally {
-        this.isLoading = false;
+      this.isLoading = true;
+      this.rankings = await fetchRankings(genreCode);
+      this.isLoading = false;
+      this.$nextTick(() => this.checkScroll());
+    },
+    checkScroll() {
+      const songList = this.$refs.songList;
+      if (songList) {
+        const isAtBottom = Math.abs(songList.scrollTop + songList.clientHeight - songList.scrollHeight) < 2;
+        this.showScrollIndicator = !isAtBottom;
       }
+    },
+    handleGenreChange(newGenre) {
+      this.selectedGenre = newGenre; // ✅ Update selectedGenre
+      this.fetchRankings(newGenre);
     }
   },
   mounted() {

@@ -1,1 +1,41 @@
 @import "tailwindcss";
+
+/* ✅ Hide scrollbar for WebKit (Chrome, Safari, Edge) */
+.scrollbar-hidden::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+  background: transparent;
+}
+
+/* ✅ Hide scrollbar for Firefox */
+.scrollbar-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+body {
+    margin: 0;
+    place-items: center;
+    min-width: 320px;
+    min-height: 100vh;
+  }
+  
+  @media (prefers-color-scheme: light) {
+    :root {
+      color: #213547;
+      background-color: #ffffff;
+    }
+  
+  
+  /* ✅ Global: Bouncing animation for the scroll indicator */
+  .animate-bounce {
+    animation: bounce 1.5s infinite;
+  }
+  
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+  }
+  
+  }
+  

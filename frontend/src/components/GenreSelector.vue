@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-gray-800 p-2 rounded-lg shadow-md w-full">
+  <div class="bg-gray-800 p-2 shadow-md w-full">
     <div class="flex flex-wrap justify-center gap-2 px-2 overflow-hidden">
       <button
         v-for="(label, code) in genreMap"
@@ -20,9 +20,11 @@
 
 <script>
 export default {
+  props: {
+    selectedGenre: String, // ✅ Accept selectedGenre as a prop
+  },
   data() {
     return {
-      selectedGenre: "DM0000", // Default genre
       genreMap: {
         "DM0000": "Top 100",
         "GN0100": "Ballads",
@@ -44,8 +46,7 @@ export default {
   },
   methods: {
     selectGenre(genreCode) {
-      this.selectedGenre = genreCode;
-      this.$emit("genre-selected", genreCode);
+      this.$emit("genre-selected", genreCode); // ✅ Emit to parent
     },
   },
 };
