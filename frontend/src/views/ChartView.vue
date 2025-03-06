@@ -7,14 +7,16 @@
     <!-- ✅ Ensure GenreSelector remains at the top -->
     <div v-if="!isLoading" class="w-full">
       <GenreSelector 
-        :selectedGenre="selectedGenre"
-        @genre-selected="handleGenreChange"
-        class="w-full"
-      />
+  :selectedGenre="selectedGenre"
+  :genreMap="genreMap"
+  @genre-selected="handleGenreChange"
+/>
+
     </div>
 
     <!-- ✅ Loading Bar -->
-    <LoadingBar :isLoading="isLoading" message="Fetching latest rankings, please wait..." />
+    <LoadingBar :isLoading="isLoading" message="Loading songs..." size="h-2" color="bg-blue-500" />
+
 
     <!-- ✅ Scrollable song list (Takes remaining height) -->
     <div 
@@ -36,70 +38,80 @@
 </template>
 
 <script>
+import { ref, computed, watchEffect } from "vue";
 import GenreSelector from "@/components/GenreSelector.vue";
 import LoadingBar from "@/components/LoadingBar.vue";
 import SongCard from "@/components/SongCard.vue";
 import ScrollIndicator from "@/components/ScrollIndicator.vue";
 import { fetchRankings } from "@/api/fetchRankings.ts";
+import useScrollIndicator from "@/composables/useScrollIndicator.ts";
+
+const genreMap = {
+  "DM0000": "Top 100",
+  "GN0100": "Ballads",
+  "GN0200": "K-Pop",
+  "GN0300": "K-Rap",
+  "GN0400": "R&B",
+  "GN0500": "Indie",
+  "GN0600": "Rock",
+  "GN0700": "Trot",
+  "GN0800": "Folk",
+  "GN1500": "OST",
+  "GN1700": "Jazz",
+  "GN1800": "New Age",
+  "GN1900": "J-Pop",
+  "GN2200": "Children",
+  "GN2400": "Korean Traditional",
+};
 
 export default {
   components: {
     GenreSelector,
     LoadingBar,
     SongCard,
-    ScrollIndicator
+    ScrollIndicator,
   },
-  data() {
+  setup() {
+    const selectedGenre = ref("DM0000");
+    const rankings = ref([]);
+    const isLoading = ref(true);
+    const { showScrollIndicator, checkScroll, songList } = useScrollIndicator();
+
+    // ✅ Fetch rankings on mount
+    async function fetchData(genre) {
+      isLoading.value = true;
+      rankings.value = await fetchRankings(genre);
+      isLoading.value = false;
+    }
+
+    // ✅ Run checkScroll() whenever rankings update
+    watchEffect(() => {
+      checkScroll();
+    });
+
+    // ✅ Handle genre change
+    async function handleGenreChange(newGenre) {
+      selectedGenre.value = newGenre;
+      await fetchData(newGenre);
+    }
+
+    // ✅ Computed property for filtering NaN ranks
+    const filteredRankings = computed(() => rankings.value.filter(song => !isNaN(song.rank)));
+
+    // ✅ Fetch default rankings
+    fetchData("DM0000");
+
     return {
-      selectedGenre: "DM0000", // ✅ Moved state here
-      rankings: [],
-      isLoading: false,
-      showScrollIndicator: true, // ✅ Scroll Indicator Visibility
-      genreMap: {
-        "DM0000": "Top 100",
-        "GN0100": "Ballads",
-        "GN0200": "K-Pop",
-        "GN0300": "K-Rap",
-        "GN0400": "R&B",
-        "GN0500": "Indie",
-        "GN0600": "Rock",
-        "GN0700": "Trot",
-        "GN0800": "Folk",
-        "GN1500": "OST",
-        "GN1700": "Jazz",
-        "GN1800": "New Age",
-        "GN1900": "J-Pop",
-        "GN2200": "Children",
-        "GN2400": "Korean Traditional",
-      },
+      selectedGenre,
+      rankings,
+      isLoading,
+      showScrollIndicator,
+      checkScroll,
+      handleGenreChange,
+      filteredRankings,
+      genreMap,
+      songList,
     };
-  },
-  computed: {
-    filteredRankings() {
-      return this.rankings.filter(song => !isNaN(song.rank));
-    }
-  },
-  methods: {
-    async fetchRankings(genreCode) {
-      this.isLoading = true;
-      this.rankings = await fetchRankings(genreCode);
-      this.isLoading = false;
-      this.$nextTick(() => this.checkScroll());
-    },
-    checkScroll() {
-      const songList = this.$refs.songList;
-      if (songList) {
-        const isAtBottom = Math.abs(songList.scrollTop + songList.clientHeight - songList.scrollHeight) < 2;
-        this.showScrollIndicator = !isAtBottom;
-      }
-    },
-    handleGenreChange(newGenre) {
-      this.selectedGenre = newGenre; // ✅ Update selectedGenre
-      this.fetchRankings(newGenre);
-    }
-  },
-  mounted() {
-    this.fetchRankings("DM0000");
   },
 };
 </script>

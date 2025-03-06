@@ -19,24 +19,20 @@
 
       <!-- ✅ Action Buttons -->
       <div class="flex items-center gap-3">
-        <a :href="song.youtube_url || '#'" target="_blank" 
-           class="text-xl" 
-           :class="{ 'opacity-50 cursor-not-allowed': !song.youtube_url, 'text-red-500 hover:text-red-600': song.youtube_url }">
-          <i class="pi pi-youtube"></i>
-        </a>
-        <a :href="song.apple_music_url || '#'" target="_blank" 
-           class="text-xl" 
-           :class="{ 'opacity-50 cursor-not-allowed': !song.apple_music_url, 'text-gray-300 hover:text-gray-400': song.apple_music_url }">
-          <i class="pi pi-apple"></i>
-        </a>
-        <a :href="song.spotify_url || '#'" target="_blank" 
-           class="text-xl" 
-           :class="{ 'opacity-50 cursor-not-allowed': !song.spotify_url, 'text-green-400 hover:text-green-500': song.spotify_url }">
-           <i class="fab fa-spotify"></i> <!-- ✅ Using FontAwesome instead -->
-        </a>
+        <template v-for="(button, index) in actionButtons" :key="index">
+          <a 
+            :href="button.url || '#'" 
+            target="_blank" 
+            class="text-xl"
+            :class="{ 'opacity-50 cursor-not-allowed': !button.url, [button.color]: button.url }"
+          >
+            <i :class="button.icon"></i>
+          </a>
+        </template>
         <button 
           @click="toggleExpand" 
-          class="px-3 py-1 text-sm font-medium bg-blue-500 hover:bg-blue-600 rounded-lg cursor-pointer">
+          class="px-3 py-1 text-sm font-medium bg-blue-500 hover:bg-blue-600 rounded-lg cursor-pointer"
+        >
           Lyrics
         </button>
       </div>
@@ -54,17 +50,30 @@
 <script>
 export default {
   props: {
-    song: Object,
+    song: {
+      type: Object,
+      required: true
+    }
   },
   data() {
     return {
       isExpanded: false,
     };
   },
+  computed: {
+    actionButtons() {
+      return [
+        { url: this.song.youtube_url, icon: "pi pi-youtube", color: "text-red-500 hover:text-red-600" },
+        { url: this.song.apple_music_url, icon: "pi pi-apple", color: "text-gray-300 hover:text-gray-400" },
+        { url: this.song.spotify_url, icon: "fab fa-spotify", color: "text-green-400 hover:text-green-500" }
+      ];
+    }
+  },
   methods: {
     toggleExpand() {
       this.isExpanded = !this.isExpanded;
-    },
+      this.$emit("toggle-expand", this.isExpanded);
+    }
   },
 };
 </script>
