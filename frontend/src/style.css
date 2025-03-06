@@ -24,7 +24,6 @@ a:hover {
 
 body {
   margin: 0;
-  display: flex;
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
@@ -54,7 +53,7 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
-.card {
+.global-card {
   padding: 2em;
 }
 

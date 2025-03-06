@@ -5,61 +5,39 @@
     </h1>
 
     <!-- ✅ Updated Genre Selector -->
+  <div v-if="!isLoading">
     <GenreSelector @genre-selected="fetchRankings" />
+  </div>
 
     <!-- ✅ Loading Bar -->
     <LoadingBar :isLoading="isLoading" message="Fetching latest rankings, please wait..." />
 
-    <!-- ✅ Responsive Table -->
-    <div class="overflow-x-auto">
-      <table v-if="!isLoading" class="w-full border-collapse mt-4 bg-gray-800 rounded-lg shadow-md">
-        <thead>
-          <tr class="bg-green-700 text-white">
-            <th class="py-3 px-4 text-left">Rank</th>
-            <th class="py-3 px-4 text-left">Title</th>
-            <th class="py-3 px-4 text-left">Artist</th>
-            <th class="py-3 px-4 text-left">Album</th>
-            <th class="py-3 px-4 text-center">Links</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="song in rankings" :key="song.id" class="border-b border-gray-700 hover:bg-gray-700 transition duration-200">
-            <td class="py-3 px-4 font-semibold text-center">{{ song.rank }}</td>
-            <td class="py-3 px-4">{{ song.title }}</td>
-            <td class="py-3 px-4">{{ song.artist }}</td>
-            <td class="py-3 px-4">{{ song.album }}</td>
-            <td class="py-3 px-4 flex justify-center space-x-2">
-              <a v-if="song.youtube_url" :href="song.youtube_url" target="_blank" class="text-red-400 hover:text-red-600 transition">
-                🎥 YouTube
-              </a>
-              <a v-if="song.genius_url" :href="song.genius_url" target="_blank" class="text-yellow-400 hover:text-yellow-600 transition">
-                🎵 Genius
-              </a>
-              <a v-if="song.spotify_url" :href="song.spotify_url" target="_blank" class="text-green-400 hover:text-green-600 transition">
-                🎶 Spotify
-              </a>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <!-- ✅ Scrollable container for 100 songs -->
+    <div v-if="!isLoading" class="overflow-y-auto max-h-[75vh] px-4 space-y-4">
+      <SongCard 
+        v-for="song in rankings" 
+        :key="song.id" 
+        :song="song" 
+      />
     </div>
   </div>
 </template>
 
-
 <script>
 import GenreSelector from "@/components/GenreSelector.vue";
-import LoadingBar from "@/components/LoadingBar.vue"; 
+import LoadingBar from "@/components/LoadingBar.vue";
+import SongCard from "@/components/SongCard.vue";
 import axios from "axios";
 
 export default {
   components: {
     GenreSelector,
-    LoadingBar,  
+    LoadingBar,
+    SongCard
   },
   data() {
     return {
-      selectedGenre: "Top 100", // Default to Top 100
+      selectedGenre: "Top 100",
       rankings: [],
       isLoading: false,
       genreMap: {
@@ -84,26 +62,24 @@ export default {
   methods: {
     async fetchRankings(genreCode) {
       try {
-        this.isLoading = true; // ✅ FIXED: Start loading bar before fetching
+        this.isLoading = true;
         const response = await axios.get(`http://localhost:5000/api/rankings?genre=${genreCode}`);
-
         this.rankings = response.data
           .map(song => ({
             ...song,
-            rank: Number(song.rank), // ✅ Ensure rank is treated as a number
+            rank: Number(song.rank),
           }))
-          .sort((a, b) => a.rank - b.rank); // ✅ Sort numerically
-
+          .sort((a, b) => a.rank - b.rank);
         this.selectedGenre = this.genreMap[genreCode] || "Unknown Genre";
       } catch (error) {
         console.error("Error fetching rankings:", error);
       } finally {
-        this.isLoading = false; // ✅ FIXED: Ensure the loading bar disappears after fetching
+        this.isLoading = false;
       }
     }
   },
   mounted() {
-    this.fetchRankings("DM0000"); // ✅ Load "Top 100" by default
+    this.fetchRankings("DM0000");
   },
 };
 </script>
