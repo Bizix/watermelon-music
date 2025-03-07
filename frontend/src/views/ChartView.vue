@@ -1,9 +1,11 @@
 <template>
-  <div class="pt-3 w-full mx-auto shadow-lg flex flex-col h-screen transition-colors" :class="containerClass">
+<div class="pt-3 w-full mx-auto shadow-lg flex flex-col h-screen transition-colors"
+     :style="{ backgroundColor: 'var(--p-surface-0)', color: 'var(--p-text-primary)' }">
     <!-- ✅ Title -->
-    <h1 class="text-center text-3xl font-extrabold mb-4" :class="titleClass">
-      Melon Chart - {{ genreMap[selectedGenre] || "Unknown Genre" }}
-    </h1>
+    <h1 class="text-center text-3xl font-extrabold mb-4"
+    :style="{ color: 'var(--p-primary-color)' }">
+  Melon Chart - {{ genreMap[selectedGenre] || 'Unknown Genre' }}
+</h1>
 
     <!-- ✅ GenreSelector -->
     <div class="w-full">

@@ -1,8 +1,10 @@
 <template>
-  <div 
-    class="w-full flex flex-col p-4 shadow-lg border transition-colors"
-    :class="['bg-surface-100 border-surface-300 hover:bg-surface-200', expandedClass]"
-  >
+<div class="w-full flex flex-col p-4 shadow-lg border transition-colors"
+    :style="{
+      backgroundColor: 'var(--p-surface-100)',
+      borderColor: 'var(--p-surface-300)',
+      color: 'var(--p-text-primary)'
+    }">
     <div class="flex items-center gap-4 w-full">
       <!-- ✅ Rank -->
       <span class="font-bold text-lg min-w-[30px] text-center text-primary-500">
