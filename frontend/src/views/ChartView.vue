@@ -16,7 +16,7 @@
 
     <!-- ✅ Loading Bar -->
     <div v-if="isLoading" class="w-full min-w-full flex flex-grow h-full">
-      <LoadingBar :isLoading="isLoading" message="Loading songs..." size="h-2" color="bg-blue-500" />
+      <LoadingBar :isLoading="isLoading" message="Loading songs..." size="h-2"  color="bg-blue-500" />
     </div>
 
 
