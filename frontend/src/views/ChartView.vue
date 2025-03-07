@@ -1,10 +1,11 @@
 <template>
-  <div class="bg-gray-900 pt-3 text-white w-full mx-auto shadow-lg flex flex-col h-screen">
-    <h1 class="text-center text-3xl font-extrabold text-green-500 mb-4">
+  <div class="pt-3 w-full mx-auto shadow-lg flex flex-col h-screen transition-colors" :class="containerClass">
+    <!-- ✅ Title -->
+    <h1 class="text-center text-3xl font-extrabold mb-4" :class="titleClass">
       Melon Chart - {{ genreMap[selectedGenre] || "Unknown Genre" }}
     </h1>
 
-    <!-- ✅ Ensure GenreSelector remains at the top -->
+    <!-- ✅ GenreSelector -->
     <div class="w-full">
       <GenreSelector 
         :selectedGenre="selectedGenre"
@@ -14,14 +15,12 @@
       />
     </div>
 
-    <!-- ✅ Loading Bar -->
-    <div v-if="isLoading" class="w-full min-w-full flex flex-grow h-full">
-      <LoadingBar :isLoading="isLoading" message="Loading songs..." size="h-2"  color="bg-blue-500" />
+    <!-- ✅ Loading Bar (Fixed Visibility) -->
+    <div v-if="isLoading" class="w-full min-w-full flex flex-grow h-full items-center justify-center">
+      <LoadingBar :isLoading="isLoading" message="Loading songs..." size="h-2" :color="loadingBarColor" />
     </div>
 
-
-
-    <!-- ✅ Scrollable song list (Takes remaining height) -->
+    <!-- ✅ Scrollable song list -->
     <div 
       v-if="!isLoading" 
       ref="songList"
@@ -35,15 +34,15 @@
       />
     </div>
 
-    <!-- ✅ Extracted Scroll Indicator Component -->
-     <div  v-if="!isLoading" >
-          <ScrollIndicator :showScrollIndicator="showScrollIndicator" />
-     </div>
+    <!-- ✅ Scroll Indicator -->
+    <div v-if="!isLoading">
+      <ScrollIndicator :showScrollIndicator="showScrollIndicator" />
+    </div>
   </div>
 </template>
 
 <script>
-import { ref, computed, watchEffect, onMounted } from "vue";
+import { ref, computed, watchEffect, onMounted, inject } from "vue";
 import GenreSelector from "@/components/GenreSelector.vue";
 import LoadingBar from "@/components/LoadingBar.vue";
 import SongCard from "@/components/SongCard.vue";
@@ -81,6 +80,22 @@ export default {
     const rankings = ref([]);
     const isLoading = ref(true);
     const { showScrollIndicator, checkScroll, songList } = useScrollIndicator();
+
+    // ✅ Inject global dark mode state
+    const isDarkMode = inject("isDarkMode", ref(false));
+
+    // ✅ Dynamic classes for dark/light mode
+    const containerClass = computed(() =>
+      isDarkMode.value ? "bg-gray-900 text-white" : "bg-white text-gray-900"
+    );
+
+    const titleClass = computed(() =>
+      isDarkMode.value ? "text-green-400" : "text-green-500"
+    );
+
+    const loadingBarColor = computed(() =>
+      isDarkMode.value ? "bg-green-400" : "bg-green-500"
+    );
 
     // ✅ Fetch rankings with error handling
     async function fetchData(genre) {
@@ -123,6 +138,10 @@ export default {
       filteredRankings,
       genreMap,
       songList,
+      isDarkMode,
+      containerClass,
+      titleClass,
+      loadingBarColor,
     };
   },
 };

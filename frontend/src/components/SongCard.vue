@@ -1,21 +1,26 @@
 <template>
   <div 
-    class="w-full flex flex-col bg-gray-800 text-white p-4 shadow-lg border border-gray-700 
-           hover:bg-gray-700 transition-colors w-full"
-    :class="{ 'bg-gray-700': isExpanded }"
+    class="w-full flex flex-col p-4 shadow-lg border transition-colors"
+    :class="['bg-surface-100 border-surface-300 hover:bg-surface-200', expandedClass]"
   >
     <div class="flex items-center gap-4 w-full">
       <!-- ✅ Rank -->
-      <span class="text-green-400 font-bold text-lg min-w-[30px] text-center">{{ song.rank }}</span>
+      <span class="font-bold text-lg min-w-[30px] text-center text-primary-500">
+        {{ song.rank }}
+      </span>
 
       <!-- ✅ Album Art -->
-      <img :src="song.art" :alt="song.album" class="w-16 h-16 rounded-md object-cover border border-gray-600" />
+      <img 
+        :src="song.art" 
+        :alt="song.album"
+        class="w-16 h-16 rounded-md object-cover border border-surface-400"
+      />
 
-      <!-- ✅ Song Info (Artist & Album) -->
+      <!-- ✅ Song Info -->
       <div class="flex flex-col flex-grow">
-        <p class="text-lg font-semibold">{{ song.title }}</p>
-        <p class="text-lg ">{{ song.artist }}</p>
-        <p class="text-sm text-gray-400 italic">{{ song.album }}</p>
+        <p class="text-lg font-semibold text-surface-900">{{ song.title }}</p>
+        <p class="text-lg text-surface-800">{{ song.artist }}</p>
+        <p class="text-sm italic text-surface-600">{{ song.album }}</p>
       </div>
 
       <!-- ✅ Action Buttons -->
@@ -30,25 +35,25 @@
             <i :class="button.icon"></i>
           </a>
         </template>
-        <button 
-          @click="toggleExpand" 
-          class="px-3 py-1 text-sm font-medium bg-blue-500 hover:bg-blue-600 rounded-lg cursor-pointer"
-        >
+        <button @click="toggleExpand"
+                class="px-3 py-1 text-sm font-medium rounded-lg cursor-pointer transition-colors bg-primary-500 hover:bg-primary-600 text-white">
           Lyrics
         </button>
       </div>
     </div>
 
-    <!-- ✅ Expanded Lyrics Section (Same Card Background & Width) -->
+    <!-- ✅ Expanded Lyrics Section -->
     <transition name="fade">
-      <div v-if="isExpanded" class="mt-3 p-3 rounded-lg bg-gray-700 border-t border-gray-600 w-full">
-        <p class="text-gray-300 italic">Lyrics will go here...</p>
+      <div v-if="isExpanded" class="mt-3 p-3 rounded-lg border-t w-full bg-surface-200 border-surface-300">
+        <p class="italic text-surface-700">Lyrics will go here...</p>
       </div>
     </transition>
   </div>
 </template>
 
 <script>
+import { ref, computed } from "vue";
+
 export default {
   props: {
     song: {
@@ -56,26 +61,25 @@ export default {
       required: true
     }
   },
-  data() {
-    return {
-      isExpanded: false,
+  setup(props) {
+    const isExpanded = ref(false);
+
+    const toggleExpand = () => {
+      isExpanded.value = !isExpanded.value;
     };
-  },
-  computed: {
-    actionButtons() {
-      return [
-        { url: this.song.youtube_url, icon: "pi pi-youtube", color: "text-red-500 hover:text-red-600" },
-        { url: this.song.apple_music_url, icon: "pi pi-apple", color: "text-gray-300 hover:text-gray-400" },
-        { url: this.song.spotify_url, icon: "fab fa-spotify", color: "text-green-400 hover:text-green-500" }
-      ];
-    }
-  },
-  methods: {
-    toggleExpand() {
-      this.isExpanded = !this.isExpanded;
-      this.$emit("toggle-expand", this.isExpanded);
-    }
-  },
+
+    const actionButtons = computed(() => [
+      { url: props.song.youtube_url, icon: "pi pi-youtube", color: "text-red-500 hover:text-red-600" },
+      { url: props.song.apple_music_url, icon: "pi pi-apple", color: "text-gray-300 hover:text-gray-400" },
+      { url: props.song.spotify_url, icon: "fab fa-spotify", color: "text-green-400 hover:text-green-500" }
+    ]);
+
+    return {
+      isExpanded,
+      toggleExpand,
+      actionButtons,
+    };
+  }
 };
 </script>
 

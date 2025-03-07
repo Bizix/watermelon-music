@@ -1,12 +1,18 @@
 <template>
-  <div class="bg-gray-800 p-2 shadow-md w-full">
+  <div class="p-2 shadow-md w-full">
     <div class="flex flex-wrap justify-center gap-2 px-2 overflow-hidden">
       <button
         v-for="(label, code) in genreOptions"
         :key="code"
         @click="emitGenre(code)"
         :disabled="isLoading"
-        :class="buttonClass(code)"
+        class="px-2 py-1 text-xs font-medium rounded transition duration-200"
+        :class="[
+          selectedGenre === code
+            ? 'bg-primary-500 text-white shadow-md'  // ✅ Uses PrimeVue's primary color
+            : 'bg-surface-300 text-surface-700 hover:bg-primary-400 hover:text-white', // ✅ Uses surface colors
+          isLoading ? 'opacity-50 cursor-not-allowed' : ''
+        ]"
       >
         {{ label }}
       </button>
@@ -27,7 +33,7 @@ export default {
     },
     isLoading: {
       type: Boolean,
-      default: false, // ✅ New prop to disable buttons when loading
+      default: false,
     },
   },
   computed: {
@@ -37,18 +43,9 @@ export default {
   },
   methods: {
     emitGenre(genreCode) {
-      if (!this.isLoading) { // ✅ Prevent interaction while loading
+      if (!this.isLoading) {
         this.$emit("genre-selected", genreCode);
       }
-    },
-    buttonClass(code) {
-      return [
-        "px-2 py-1 text-xs font-medium rounded transition duration-200",
-        this.selectedGenre === code
-          ? "bg-green-500 text-white shadow-md"
-          : "bg-gray-700 text-gray-300 hover:bg-green-400 hover:text-white",
-        this.isLoading ? "opacity-50 cursor-not-allowed" : "", // ✅ Disable styling
-      ];
     },
   },
 };

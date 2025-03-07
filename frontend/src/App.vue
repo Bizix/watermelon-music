@@ -1,16 +1,18 @@
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, provide, onMounted } from "vue";
 import ChartView from "@/views/ChartView.vue";
 
-// ✅ Theme toggle logic
+// ✅ Reactive dark mode state
 const isDarkMode = ref(false);
 
+// ✅ Toggle function
 const toggleDarkMode = () => {
   isDarkMode.value = !isDarkMode.value;
   document.documentElement.classList.toggle("app-dark", isDarkMode.value);
+  localStorage.setItem("theme", isDarkMode.value ? "dark" : "light");
 };
 
-// ✅ Preserve user's theme preference across sessions
+// ✅ Retrieve stored preference
 onMounted(() => {
   const storedTheme = localStorage.getItem("theme");
   if (storedTheme === "dark") {
@@ -19,16 +21,15 @@ onMounted(() => {
   }
 });
 
-const saveThemePreference = () => {
-  localStorage.setItem("theme", isDarkMode.value ? "dark" : "light");
-};
+// ✅ Provide dark mode state to all components
+provide("isDarkMode", isDarkMode);
 </script>
 
 <template>
   <div class="relative min-h-screen">
     <!-- ✅ Theme Toggle Button -->
     <button
-      @click="toggleDarkMode(); saveThemePreference()"
+      @click="toggleDarkMode"
       class="absolute top-4 right-4 px-4 py-2 rounded-lg text-white transition-all duration-300"
       :class="isDarkMode ? 'bg-gray-800 hover:bg-gray-700' : 'bg-green-500 hover:bg-green-400'"
     >

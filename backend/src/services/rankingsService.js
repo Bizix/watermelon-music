@@ -12,7 +12,7 @@ function getScrapeStatus(genreCode) {
 
 // ✅ Fetch Rankings from Cache or Database
 async function getRankings(genreCode) {
-    console.log(`🟢 Checking cache for genre SKIPPED: ${genreCode}`);
+    console.log(`🟢 Checking cache for genre: ${genreCode}`);
 
     // 1️⃣ Check Cache First
     const cachedData = getCache(genreCode);
