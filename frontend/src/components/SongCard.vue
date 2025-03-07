@@ -1,7 +1,7 @@
 <template>
   <div 
     class="w-full flex flex-col bg-gray-800 text-white p-4 shadow-lg border border-gray-700 
-           hover:bg-gray-700 transition-colors"
+           hover:bg-gray-700 transition-colors w-full"
     :class="{ 'bg-gray-700': isExpanded }"
   >
     <div class="flex items-center gap-4 w-full">

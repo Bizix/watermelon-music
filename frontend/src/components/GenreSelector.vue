@@ -5,6 +5,7 @@
         v-for="(label, code) in genreOptions"
         :key="code"
         @click="emitGenre(code)"
+        :disabled="isLoading"
         :class="buttonClass(code)"
       >
         {{ label }}
@@ -24,6 +25,10 @@ export default {
       type: Object,
       required: true,
     },
+    isLoading: {
+      type: Boolean,
+      default: false, // ✅ New prop to disable buttons when loading
+    },
   },
   computed: {
     genreOptions() {
@@ -32,7 +37,9 @@ export default {
   },
   methods: {
     emitGenre(genreCode) {
-      this.$emit("genre-selected", genreCode);
+      if (!this.isLoading) { // ✅ Prevent interaction while loading
+        this.$emit("genre-selected", genreCode);
+      }
     },
     buttonClass(code) {
       return [
@@ -40,6 +47,7 @@ export default {
         this.selectedGenre === code
           ? "bg-green-500 text-white shadow-md"
           : "bg-gray-700 text-gray-300 hover:bg-green-400 hover:text-white",
+        this.isLoading ? "opacity-50 cursor-not-allowed" : "", // ✅ Disable styling
       ];
     },
   },

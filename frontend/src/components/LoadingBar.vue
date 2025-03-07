@@ -1,9 +1,6 @@
 <template>
-  <div v-if="isLoading" class="text-center mt-4">
-    <div 
-      class="w-full rounded-full animate-pulse" 
-      :class="[loadingSize, loadingColor]"
-    ></div>
+  <div v-if="isLoading" class="flex flex-col items-center justify-center h-full w-full flex-grow">
+    <div class="w-1/2 rounded-full animate-pulse" :class="[loadingSize, loadingColor]"></div>
     <p class="text-gray-300 text-sm mt-2">{{ message }}</p>
   </div>
 </template>
@@ -21,7 +18,7 @@ export default {
     },
     size: {
       type: String,
-      default: "h-1", // Default thickness
+      default: "h-2", // Default thickness
     },
     color: {
       type: String,

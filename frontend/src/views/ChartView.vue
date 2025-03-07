@@ -5,17 +5,20 @@
     </h1>
 
     <!-- ✅ Ensure GenreSelector remains at the top -->
-    <div v-if="!isLoading" class="w-full">
+    <div class="w-full">
       <GenreSelector 
-  :selectedGenre="selectedGenre"
-  :genreMap="genreMap"
-  @genre-selected="handleGenreChange"
-/>
-
+        :selectedGenre="selectedGenre"
+        :genreMap="genreMap"
+        :isLoading="isLoading"  
+        @genre-selected="handleGenreChange"
+      />
     </div>
 
     <!-- ✅ Loading Bar -->
-    <LoadingBar :isLoading="isLoading" message="Loading songs..." size="h-2" color="bg-blue-500" />
+    <div v-if="isLoading" class="w-full min-w-full flex flex-grow h-full">
+      <LoadingBar :isLoading="isLoading" message="Loading songs..." size="h-2" color="bg-blue-500" />
+    </div>
+
 
 
     <!-- ✅ Scrollable song list (Takes remaining height) -->
@@ -33,12 +36,14 @@
     </div>
 
     <!-- ✅ Extracted Scroll Indicator Component -->
-    <ScrollIndicator :showScrollIndicator="showScrollIndicator" />
+     <div  v-if="!isLoading" >
+          <ScrollIndicator :showScrollIndicator="showScrollIndicator" />
+     </div>
   </div>
 </template>
 
 <script>
-import { ref, computed, watchEffect } from "vue";
+import { ref, computed, watchEffect, onMounted } from "vue";
 import GenreSelector from "@/components/GenreSelector.vue";
 import LoadingBar from "@/components/LoadingBar.vue";
 import SongCard from "@/components/SongCard.vue";
@@ -77,11 +82,16 @@ export default {
     const isLoading = ref(true);
     const { showScrollIndicator, checkScroll, songList } = useScrollIndicator();
 
-    // ✅ Fetch rankings on mount
+    // ✅ Fetch rankings with error handling
     async function fetchData(genre) {
       isLoading.value = true;
-      rankings.value = await fetchRankings(genre);
-      isLoading.value = false;
+      try {
+        rankings.value = await fetchRankings(genre);
+      } catch (error) {
+        console.error("❌ Error fetching rankings:", error);
+      } finally {
+        isLoading.value = false;
+      }
     }
 
     // ✅ Run checkScroll() whenever rankings update
@@ -98,8 +108,10 @@ export default {
     // ✅ Computed property for filtering NaN ranks
     const filteredRankings = computed(() => rankings.value.filter(song => !isNaN(song.rank)));
 
-    // ✅ Fetch default rankings
-    fetchData("DM0000");
+    // ✅ Fetch initial rankings after component mounts
+    onMounted(() => {
+      fetchData("DM0000");
+    });
 
     return {
       selectedGenre,

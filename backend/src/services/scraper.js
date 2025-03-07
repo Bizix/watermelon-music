@@ -47,8 +47,6 @@ async function scrapeMelonCharts(genreCode = "DM0000") {
         });
     });
 
-
-
     // // 🛠 Debugging logs
     // console.log(`✅ Successfully scraped ${songs.length} songs for genre: ${genreCode}`);
 
@@ -64,10 +62,8 @@ async function scrapeMelonCharts(genreCode = "DM0000") {
     return songs;
 }
 
-
-
 async function saveToDatabase(genreCode = "DM0000") {
-    console.log(`🟢 Checking cache for genre: ${genreCode}`);
+    console.log(`🟢 Checking cache for HI genre: ${genreCode}`);
 
     // 1️⃣ Check if data is in cache and not expired
     const cachedData = cache.get(genreCode);
