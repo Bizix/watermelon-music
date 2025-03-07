@@ -13,7 +13,8 @@
 
       <!-- ✅ Song Info (Artist & Album) -->
       <div class="flex flex-col flex-grow">
-        <p class="text-lg font-semibold">{{ song.artist }}</p>
+        <p class="text-lg font-semibold">{{ song.title }}</p>
+        <p class="text-lg ">{{ song.artist }}</p>
         <p class="text-sm text-gray-400 italic">{{ song.album }}</p>
       </div>
 
