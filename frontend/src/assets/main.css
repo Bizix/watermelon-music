@@ -1,29 +1,54 @@
 @import "tailwindcss";
 
+/* ✅ Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&family=Poppins:wght@400;700&display=swap');
+
+@theme {
+  --font-english: "Poppins", sans-serif;
+  --font-korean: "Noto Sans KR", sans-serif;
+}
+
+/* ✅ Explicitly Load Google Fonts */
+@font-face {
+  font-family: "AutoFont";
+  src: url('https://fonts.gstatic.com/s/poppins/v15/pxiGyp8kv8JHgFVrJJbecmNE.woff2') format('woff2'),
+       local("Poppins");
+  unicode-range: U+0000-00FF, U+1F00-1FFF, U+2000-206F, U+2E00-2E7F;
+}
+
+@font-face {
+  font-family: "AutoFont";
+  src: url('https://fonts.gstatic.com/s/notosanskr/v23/Pby6FmXiEBPT4ITbgNA5CgmOELCJWMiH.woff2') format('woff2'),
+       local("Noto Sans KR");
+  unicode-range: U+AC00-D7AF, U+1100-11FF, U+3130-318F;
+}
+
+/* ✅ Apply AutoFont Everywhere */
+html {
+  font-family: "AutoFont", sans-serif;
+}
 /* Global Styles */
 body {
-    @apply bg-gray-900 text-white;
-  }
-  
-  /* Custom Tailwind Overrides */
-  .text-primary {
-    color: rgb(0, 210, 2);
-  }
-  
-  .bg-primary {
-    background-color: rgb(0, 210, 2);
-  }
-  
-  /* Table Styling */
-  .table-container {
-    @apply bg-gray-800 text-white p-6 rounded-lg shadow-lg;
-  }
-  
-  .table-header {
-    @apply bg-green-700 text-white;
-  }
-  
-  .table-row {
-    @apply border-b border-gray-700 hover:bg-gray-800;
-  }
-  
+  @apply bg-gray-900 text-white;
+}
+
+Custom Tailwind Overrides .text-primary {
+  color: rgb(0, 210, 2);
+}
+
+.bg-primary {
+  background-color: rgb(0, 210, 2);
+}
+
+/* Table Styling */
+.table-container {
+  @apply bg-gray-800 text-white p-6 rounded-lg shadow-lg;
+}
+
+.table-header {
+  @apply bg-green-700 text-white;
+}
+
+.table-row {
+  @apply border-b border-gray-700 hover:bg-gray-800;
+}
