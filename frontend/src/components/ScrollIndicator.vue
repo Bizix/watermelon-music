@@ -1,8 +1,8 @@
 <template>
   <div 
     v-if="showScrollIndicator" 
-    class="absolute bottom-0 left-0 w-full h-12 bg-gradient-to-t flex justify-center items-end pointer-events-none"
-    :class="gradientClass"
+    class="absolute bottom-0 left-0 w-full h-12 flex justify-center items-end pointer-events-none"
+    :style="gradientStyle"
   >
     <p class="text-[var(--p-text-secondary)] text-sm animate-bounce">↓ Scroll for more ↓</p>
   </div>
@@ -13,21 +13,20 @@ import { computed, inject } from "vue";
 
 export default {
   props: {
-    showScrollIndicator: Boolean, // ✅ Accept boolean prop
+    showScrollIndicator: Boolean,
   },
   setup() {
-    // ✅ Detect if dark mode is active
     const isDarkMode = inject("isDarkMode", false);
 
-    // ✅ Adjust gradient dynamically based on mode
-    const gradientClass = computed(() =>
-      isDarkMode.value
-        ? "from-[var(--p-surface-100)] to-transparent"
-        : "from-[var(--p-surface-300)] to-transparent"
-    );
+    // ✅ Apply radial gradient using inline styles (Vue binding)
+    const gradientStyle = computed(() => ({
+      background: isDarkMode.value
+        ? "radial-gradient(ellipse at center, rgba(40,40,40,0.7) 0%, transparent 80%)"
+        : "radial-gradient(ellipse at center, rgba(220,220,220,0.4) 0%, transparent 80%)",
+    }));
 
     return {
-      gradientClass,
+      gradientStyle,
     };
   },
 };
