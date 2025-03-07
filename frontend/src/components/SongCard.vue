@@ -1,7 +1,7 @@
 <template>
-<div class="w-full flex flex-col p-4 shadow-lg border transition-colors"
+<div class="w-full flex flex-col p-4 shadow-lg border-t transition-colors"
     :style="{
-      backgroundColor: 'var(--p-surface-100)',
+      backgroundColor: 'var(--p-surface-0)',
       borderColor: 'var(--p-surface-300)',
       color: 'var(--p-text-primary)'
     }">
@@ -38,9 +38,11 @@
           </a>
         </template>
         <button @click="toggleExpand"
-                class="px-3 py-1 text-sm font-medium rounded-lg cursor-pointer transition-colors bg-primary-500 hover:bg-primary-600 text-white">
+          class="px-3 py-1 text-sm font-medium rounded-lg cursor-pointer transition-colors 
+                bg-[var(--p-primary-color)] text-white hover:bg-[var(--p-primary-400)]">
           Lyrics
         </button>
+
       </div>
     </div>
 

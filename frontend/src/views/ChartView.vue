@@ -1,5 +1,5 @@
 <template>
-<div class="pt-3 w-full mx-auto shadow-lg flex flex-col h-screen transition-colors"
+<div class="pt-3 w-full mx-auto flex flex-col h-screen transition-colors"
      :style="{ backgroundColor: 'var(--p-surface-0)', color: 'var(--p-text-primary)' }">
     <!-- ✅ Title -->
     <h1 class="text-center text-3xl font-extrabold mb-4"
@@ -18,10 +18,10 @@
     </div>
 
     <!-- ✅ Loading Bar (Fixed Visibility) -->
-    <div v-if="isLoading" class="w-full min-w-full flex flex-grow h-full items-center justify-center">
-      <LoadingBar :isLoading="isLoading" message="Loading songs..." size="h-2" :color="loadingBarColor" />
+    <div v-if="isLoading" class="w-full flex flex-grow h-full items-center justify-center">
+      <LoadingBar :isLoading="isLoading" message="Loading songs..." size="h-2" 
+                  :style="{ backgroundColor: 'var(--p-primaryKey-color)' }" />
     </div>
-
     <!-- ✅ Scrollable song list -->
     <div 
       v-if="!isLoading" 
