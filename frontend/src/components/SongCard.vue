@@ -57,6 +57,7 @@
 
 <script>
 import { ref, computed } from "vue";
+import { fetchYouTubeUrl } from "../../../backend/src/api/youtubeService";
 
 export default {
   props: {
@@ -67,6 +68,21 @@ export default {
   },
   setup(props) {
     const isExpanded = ref(false);
+    const cache = inject("cache"); // ✅ Inject global cache (if applicable)
+
+    async function openYouTube() {
+      let youtubeUrl = cache?.get(props.song.id) || props.song.youtube_url;
+
+      if (!youtubeUrl) {
+        youtubeUrl = await fetchYouTubeUrl(props.song.title, props.song.artist);
+      }
+
+      if (youtubeUrl) {
+        window.open(youtubeUrl, "_blank");
+      } else {
+        console.error("❌ No YouTube URL found for this song.");
+      }
+    }
 
     const toggleExpand = () => {
       isExpanded.value = !isExpanded.value;
@@ -79,6 +95,7 @@ export default {
     ]);
 
     return {
+      openYouTube,
       isExpanded,
       toggleExpand,
       actionButtons,
