@@ -28,15 +28,23 @@
       <!-- ✅ Action Buttons -->
       <div class="flex items-center gap-3">
         <template v-for="(button, index) in actionButtons" :key="index">
-          <a 
-            :href="button.url || '#'" 
-            target="_blank" 
+          <a
+            v-if="button.url"
+            :href="button.url"
+            target="_blank"
             class="text-xl"
-            :class="{ 'opacity-50 cursor-not-allowed': !button.url, [button.color]: button.url }"
+            :class="button.color"
           >
             <i :class="button.icon"></i>
           </a>
+          <span
+            v-else
+            class="text-xl opacity-50 cursor-not-allowed pointer-events-none"
+          >
+            <i :class="button.icon"></i>
+          </span>
         </template>
+
         <button @click="toggleExpand"
           class="px-3 py-1 text-sm font-medium rounded-lg cursor-pointer transition-colors 
                 bg-[var(--p-primary-color)] text-white hover:bg-[var(--p-primary-400)]">
@@ -57,7 +65,6 @@
 
 <script>
 import { ref, computed } from "vue";
-import { fetchYouTubeUrl } from "../../../backend/src/api/youtubeService";
 
 export default {
   props: {
@@ -68,20 +75,33 @@ export default {
   },
   setup(props) {
     const isExpanded = ref(false);
-    const cache = inject("cache"); // ✅ Inject global cache (if applicable)
+    const cache = new Map(); // ✅ Simple in-memory cache
 
     async function openYouTube() {
-      let youtubeUrl = cache?.get(props.song.id) || props.song.youtube_url;
+      let youtubeUrl = cache.get(props.song.id) || props.song.youtube_url;
 
       if (!youtubeUrl) {
-        youtubeUrl = await fetchYouTubeUrl(props.song.title, props.song.artist);
+        try {
+          const response = await fetch(
+            `http://localhost:5000/api/youtube?title=${encodeURIComponent(props.song.title)}&artist=${encodeURIComponent(props.song.artist)}`
+          );
+
+          const data = await response.json();
+          if (response.ok && data.youtubeUrl) {
+            youtubeUrl = data.youtubeUrl;
+            cache.set(props.song.id, youtubeUrl);
+          } else {
+            console.error("❌ No YouTube URL found:", data.error);
+            return;
+          }
+        } catch (error) {
+          console.error("❌ Failed to fetch YouTube URL:", error);
+          return;
+        }
       }
 
-      if (youtubeUrl) {
-        window.open(youtubeUrl, "_blank");
-      } else {
-        console.error("❌ No YouTube URL found for this song.");
-      }
+      // ✅ Open YouTube link in a new tab
+      window.open(youtubeUrl, "_blank");
     }
 
     const toggleExpand = () => {
@@ -89,7 +109,7 @@ export default {
     };
 
     const actionButtons = computed(() => [
-      { url: props.song.youtube_url, icon: "pi pi-youtube", color: "text-red-500 hover:text-red-600" },
+      { url: props.song.youtube_url, icon: "pi pi-youtube", color: "text-red-500 hover:text-red-600", action: openYouTube },
       { url: props.song.apple_music_url, icon: "pi pi-apple", color: "text-gray-300 hover:text-gray-400" },
       { url: props.song.spotify_url, icon: "fab fa-spotify", color: "text-green-400 hover:text-green-500" }
     ]);
@@ -103,6 +123,7 @@ export default {
   }
 };
 </script>
+
 
 <style scoped>
 /* ✅ Smooth Fade Transition */

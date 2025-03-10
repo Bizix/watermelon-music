@@ -31,7 +31,7 @@
     position: absolute;
     top: 16px;
     right: 16px;
-    padding: 8px 12px;
+    /* padding: 12px 12px; */
     border-radius: 8px;
     font-size: 1.2rem;
     background-color: var(--p-primary-500);

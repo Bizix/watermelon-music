@@ -6,6 +6,8 @@ const helmet = require("helmet");
 const pool = require("./config/db");
 const scraperRoutes = require("./routes/scraperRoutes");
 const rankingsRoutes = require("./routes/rankingsRoutes");
+const youtubeRoutes = require("./routes/youtubeRoutes");
+
 
 const app = express();
 
@@ -18,6 +20,8 @@ app.use(morgan("dev")); // ✅ Request logging
 // ✅ API Routes
 app.use("/api", scraperRoutes);
 app.use("/api", rankingsRoutes);
+app.use("/api", youtubeRoutes);
+
 
 // ✅ Health Check Route
 app.get("/", (req, res) => {
