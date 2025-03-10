@@ -1,4 +1,33 @@
 @import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&family=Poppins:wght@400;700&display=swap");
+
+/* ✅ Explicitly Load Google Fonts */
+@font-face {
+  font-family: "AutoFont";
+  src: url("https://fonts.gstatic.com/s/poppins/v15/pxiGyp8kv8JHgFVrJJbecmNE.woff2")
+      format("woff2"),
+    local("Poppins");
+  unicode-range: U+0000-00FF, U+1F00-1FFF, U+2000-206F, U+2E00-2E7F;
+}
+
+@font-face {
+  font-family: "AutoFont";
+  src: url("https://fonts.gstatic.com/s/notosanskr/v23/Pby6FmXiEBPT4ITbgNA5CgmOELCJWMiH.woff2")
+      format("woff2"),
+    local("Noto Sans KR");
+  unicode-range: U+AC00-D7AF, U+1100-11FF, U+3130-318F;
+}
+
+/* ✅ Apply AutoFont Everywhere */
+html {
+  font-family: "AutoFont", sans-serif;
+}
+
+@theme {
+  --font-english: "Poppins", sans-serif;
+  --font-korean: "Noto Sans KR", sans-serif;
+}
+
 
 /* ✅ Hide scrollbar for WebKit (Chrome, Safari, Edge) */
 .scrollbar-hidden::-webkit-scrollbar {
@@ -14,28 +43,26 @@
 }
 
 body {
-    margin: 0;
-    place-items: center;
-    min-width: 320px;
-    min-height: 100vh;
-  }
-  
-  @media (prefers-color-scheme: light) {
-    :root {
-      color: #213547;
-      background-color: #ffffff;
-    }
-  
-  
+  margin: 0;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+@media (prefers-color-scheme: light) {
+
   /* ✅ Global: Bouncing animation for the scroll indicator */
   .animate-bounce {
     animation: bounce 1.5s infinite;
   }
-  
-  @keyframes bounce {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-5px); }
-  }
 
+  @keyframes bounce {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-5px);
+    }
   }
-  
+}
