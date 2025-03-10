@@ -1,11 +1,28 @@
 <template>
-<div class="pt-3 w-full mx-auto flex flex-col h-screen transition-colors"
-     :style="{ backgroundColor: 'var(--p-surface-0)', color: 'var(--p-text-primary)' }">
-    <!-- ✅ Title -->
-    <h1 class="text-center text-3xl font-extrabold mb-4"
-    :style="{ color: 'var(--p-primary-color)' }">
-  Melon Chart - {{ genreMap[selectedGenre] || 'Unknown Genre' }}
-</h1>
+  <div class="pt-3 w-full mx-auto flex flex-col h-screen transition-colors"
+       :style="{ backgroundColor: 'var(--p-surface-0)', color: 'var(--p-text-primary)' }">
+
+    <!-- ✅ Header Section (Title Centered, Toggle Fixed on Right) -->
+    <div class="relative flex justify-center items-center my-4">
+      <!-- ✅ Title (Centered) -->
+      <h1 class="text-3xl font-extrabold text-center"
+          :style="{ color: 'var(--p-primary-color)' }">
+        Melon Chart - {{ genreMap[selectedGenre] || 'Unknown Genre' }}
+      </h1>
+
+      <!-- ✅ Theme Toggle Button (Fixed on Right) -->
+      <button
+        @click="toggleDarkMode"
+        class="absolute right-4 top-0 w-10 h-10 flex items-center justify-center rounded-lg transition-all duration-300"
+        :class="{
+          'bg-[var(--p-primary-color)] text-white hover:bg-[var(--p-primary-400)]': !isDarkMode,
+          'bg-[var(--p-surface-50)] text-white hover:bg-[var(--p-surface-100)]': isDarkMode
+        }"
+      >
+        <i v-if="isDarkMode" class="pi pi-moon text-lg"></i>
+        <i v-else class="pi pi-sun text-lg"></i>
+      </button>
+    </div>
 
     <!-- ✅ GenreSelector -->
     <div class="w-full">
@@ -17,12 +34,13 @@
       />
     </div>
 
-    <!-- ✅ Loading Bar (Fixed Visibility) -->
+    <!-- ✅ Loading Bar -->
     <div v-if="isLoading" class="w-full flex flex-grow h-full items-center justify-center">
       <LoadingBar :isLoading="isLoading" message="Loading songs..." size="h-2" 
                   :style="{ backgroundColor: 'var(--p-primaryKey-color)' }" />
     </div>
-    <!-- ✅ Scrollable song list -->
+
+    <!-- ✅ Song List -->
     <div 
       v-if="!isLoading" 
       ref="songList"
@@ -42,6 +60,7 @@
     </div>
   </div>
 </template>
+
 
 <script>
 import { ref, computed, watchEffect, onMounted, inject } from "vue";
@@ -83,21 +102,9 @@ export default {
     const isLoading = ref(true);
     const { showScrollIndicator, checkScroll, songList } = useScrollIndicator();
 
-    // ✅ Inject global dark mode state
+    // ✅ Inject global dark mode state & toggle function
     const isDarkMode = inject("isDarkMode", ref(false));
-
-    // ✅ Dynamic classes for dark/light mode
-    const containerClass = computed(() =>
-      isDarkMode.value ? "bg-gray-900 text-white" : "bg-white text-gray-900"
-    );
-
-    const titleClass = computed(() =>
-      isDarkMode.value ? "text-green-400" : "text-green-500"
-    );
-
-    const loadingBarColor = computed(() =>
-      isDarkMode.value ? "bg-green-400" : "bg-green-500"
-    );
+    const toggleDarkMode = inject("toggleDarkMode", () => {});
 
     // ✅ Fetch rankings with error handling
     async function fetchData(genre) {
@@ -111,11 +118,6 @@ export default {
       }
     }
 
-    // ✅ Run checkScroll() whenever rankings update
-    watchEffect(() => {
-      checkScroll();
-    });
-
     // ✅ Handle genre change
     async function handleGenreChange(newGenre) {
       selectedGenre.value = newGenre;
@@ -123,7 +125,9 @@ export default {
     }
 
     // ✅ Computed property for filtering NaN ranks
-    const filteredRankings = computed(() => rankings.value.filter(song => !isNaN(song.rank)));
+    const filteredRankings = computed(() =>
+      rankings.value.filter((song) => !isNaN(song.rank))
+    );
 
     // ✅ Fetch initial rankings after component mounts
     onMounted(() => {
@@ -141,10 +145,9 @@ export default {
       genreMap,
       songList,
       isDarkMode,
-      containerClass,
-      titleClass,
-      loadingBarColor,
+      toggleDarkMode,
     };
   },
 };
 </script>
+

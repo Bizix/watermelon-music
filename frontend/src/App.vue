@@ -21,26 +21,13 @@ onMounted(() => {
   }
 });
 
-// ✅ Provide dark mode state to all components
+// ✅ Provide dark mode state & function to all components
 provide("isDarkMode", isDarkMode);
+provide("toggleDarkMode", toggleDarkMode);
 </script>
 
 <template>
   <div class="relative min-h-screen">
-    <!-- ✅ Theme Toggle Button -->
-    <button
-      @click="toggleDarkMode"
-      class="absolute top-4 right-4 px-4 py-2 rounded-lg transition-all duration-300"
-      :class="{
-        'bg-[var(--p-primary-color)] text-white hover:bg-[var(--p-primary-400)]': !isDarkMode, // ✅ Fades slightly on hover
-        'bg-[var(--p-surface-50)] text-white hover:bg-[var(--p-surface-100)]': isDarkMode       // ✅ Correct dark mode colors
-      }"
-    >
-      <i v-if="isDarkMode" class="pi pi-moon"></i>
-      <i v-else class="pi pi-sun"></i>
-    </button>
-
-    <!-- ✅ Main Content -->
     <ChartView />
   </div>
 </template>

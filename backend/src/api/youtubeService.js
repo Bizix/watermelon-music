@@ -9,6 +9,17 @@ const YOUTUBE_REFRESH_MS = 30 * 24 * 60 * 60 * 1000; // 30 days in milliseconds
 let stopYouTubeFetch = false; // ✅ Global flag to stop fetching after 403 error
 
 /**
+ * ✅ Handles YouTube API quota errors
+ * @param {Error} error - The Axios error response
+ */
+function handleYouTubeQuotaError(error) {
+  if (error.response?.status === 403) {
+    console.error(`🚨 YouTube API quota exceeded! Stopping further requests.`);
+    stopYouTubeFetch = true; // ✅ Prevent future API calls
+  }
+}
+
+/**
  * ✅ Fetch YouTube URL for a song from the API
  * @param {string} title
  * @param {string} artist
@@ -37,17 +48,10 @@ async function fetchFromYouTube(title, artist) {
       return null;
     }
 
-    const videoId = response.data.items[0].id.videoId;
-    return `https://www.youtube.com/watch?v=${videoId}`;
+    return `https://www.youtube.com/watch?v=${response.data.items[0].id.videoId}`;
   } catch (error) {
     console.error(`❌ Error fetching YouTube data for ${title} - ${artist}:`, error);
-
-    // ✅ If a 403 Forbidden error occurs, stop all further YouTube API calls
-    if (error.response && error.response.status === 403) {
-      console.error(`🚨 YouTube API quota exceeded! Stopping further requests.`);
-      stopYouTubeFetch = true; // ✅ Prevent future API calls
-    }
-
+    handleYouTubeQuotaError(error);
     return null;
   }
 }
@@ -65,15 +69,13 @@ async function fetchYouTubeUrl(title, artist) {
   }
 
   const cacheKey = `youtube_${title}_${artist}`;
-  const cachedData = getCache(cacheKey);
-
-  if (cachedData) {
+  const cachedUrl = getCache(cacheKey);
+  if (cachedUrl) {
     console.log(`✅ Loaded YouTube URL from cache for ${title} - ${artist}`);
-    return cachedData;
+    return cachedUrl;
   }
 
   const client = await pool.connect();
-
   try {
     // ✅ Check database first
     const result = await client.query(

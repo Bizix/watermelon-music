@@ -9,21 +9,14 @@ function getScrapeStatus(genreCode) {
   return scrapingStatus[genreCode] || false;
 }
 
-// ✅ Fetch Rankings from Cache or Database
-async function getRankings(genreCode) {
-  console.log(`🟢 Checking cache for genre: ${genreCode}`);
-
-  // ✅ Check if cache exists first
-  const cachedData = getCache(genreCode);
-  if (cachedData) {
-    return cachedData;
-  }
-
-  const client = await pool.connect();
-
+/**
+ * ✅ Determines if scraping is needed based on the last update timestamp and missing YouTube data.
+ * @param {string} genreCode
+ * @param {object} client - Database client
+ * @returns {Promise<boolean>} - Returns true if scraping is needed
+ */
+async function shouldScrapeGenre(genreCode, client) {
   try {
-    // ✅ Check last update time in DB
-    // ✅ Check last update time in DB and if any song is missing a YouTube URL
     const result = await client.query(
       `SELECT 
         g.last_updated, 
@@ -33,55 +26,75 @@ async function getRankings(genreCode) {
             WHERE sr.genre_id = g.id 
             AND (s.youtube_url IS NULL OR s.youtube_last_updated IS NULL)
         ) AS missing_youtube
-    FROM genres g
-    WHERE g.code = $1`,
+      FROM genres g
+      WHERE g.code = $1`,
       [genreCode]
     );
 
-    const lastUpdated = result.rows.length ? result.rows[0].last_updated : null;
-    const missingYouTube = result.rows.length
-      ? result.rows[0].missing_youtube
-      : false;
+    if (result.rows.length === 0) return true; // ✅ If genre doesn't exist, scrape
 
-    // ✅ If data is fresh and no missing YouTube links, skip scraping
-    if (
-      lastUpdated &&
-      Date.now() - new Date(lastUpdated).getTime() < 24 * 60 * 60 * 1000 &&
-      !missingYouTube
-    ) {
-      console.log(
-        `✅ Using existing DB data for genre via rankingsService '${genreCode}'`
-      );
-    } else {
-      console.log(
-        `🔄 Scraping forced for genre: ${genreCode} (Missing YouTube: ${missingYouTube})`
-      );
+    const { last_updated: lastUpdated, missing_youtube: missingYouTube } =
+      result.rows[0];
+
+    return (
+      !lastUpdated ||
+      Date.now() - new Date(lastUpdated).getTime() > 24 * 60 * 60 * 1000 ||
+      missingYouTube
+    );
+  } catch (error) {
+    console.error(`❌ Error checking update conditions for ${genreCode}:`, error);
+    return true; // ✅ Assume scraping is needed in case of error
+  }
+}
+
+/**
+ * ✅ Fetch rankings from cache or database, triggering a scrape if necessary
+ * @param {string} genreCode
+ * @returns {Promise<Object[]>} - Rankings data
+ */
+async function getRankings(genreCode) {
+  console.log(`🟢 Checking cache for genre: ${genreCode}`);
+
+  // ✅ Return cached data if available
+  const cachedData = getCache(genreCode);
+  if (cachedData) return cachedData;
+
+  const client = await pool.connect();
+  try {
+    // ✅ Determine if scraping is necessary
+    const needsScraping = await shouldScrapeGenre(genreCode, client);
+
+    if (needsScraping) {
+      console.log(`🔄 Scraping forced for genre: ${genreCode}`);
       await scrapeAndSaveGenre(genreCode);
+    } else {
+      console.log(`✅ Using existing DB data for genre: '${genreCode}'`);
     }
 
-    // ✅ Now get the updated rankings
+    // ✅ Fetch the updated rankings
     const rankingsResult = await client.query(
-      `SELECT sr.rank, s.title, a.name AS artist, s.album, s.art, s.youtube_url, s.genius_url, s.spotify_url
-             FROM song_rankings sr
-             JOIN songs s ON sr.song_id = s.id
-             JOIN artists a ON s.artist_id = a.id
-             WHERE sr.genre_id = (SELECT id FROM genres WHERE code = $1)
-             ORDER BY sr.rank ASC;`,
+      `SELECT sr.rank, s.title, a.name AS artist, s.album, s.art, 
+              s.youtube_url, s.genius_url, s.spotify_url
+       FROM song_rankings sr
+       JOIN songs s ON sr.song_id = s.id
+       JOIN artists a ON s.artist_id = a.id
+       WHERE sr.genre_id = (SELECT id FROM genres WHERE code = $1)
+       ORDER BY sr.rank ASC`,
       [genreCode]
     );
 
     const rankings = rankingsResult.rows;
 
-    // ✅ Store in cache for future requests
+    // ✅ Store results in cache
     setCache(genreCode, rankings);
-
     return rankings;
   } catch (error) {
     console.error("❌ Error fetching rankings:", error);
     throw error;
   } finally {
-    client.release(); // ✅ Always release the client
+    client.release(); // ✅ Always release DB client
   }
 }
 
+// ✅ Export services
 module.exports = { getRankings, getScrapeStatus };
