@@ -1,7 +1,6 @@
 const axios = require("axios");
 const pool = require("../config/db");
-const levenshtein = require("fast-levenshtein");
-const { getCache, setCache } = require("../services/cacheService");
+const { processArtistAndTitle } = require("../utils/artistUtils");
 
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
@@ -59,70 +58,57 @@ async function fetchFromSpotify(title, artist, album) {
     const token = await getSpotifyAccessToken();
     if (!token) return null;
 
-    console.log(`🔎 Searching Spotify for: ${title} ${artist}  ${album}`);
+    // ✅ Process artist and title before searching
+    const { processedArtist, processedTitle } = processArtistAndTitle(
+      artist,
+      title
+    );
+
+    console.log(
+      `🔎 Searching Spotify for: ${processedArtist} ${processedTitle}`
+    );
 
     const response = await axios.get(SPOTIFY_SEARCH_URL, {
       headers: { Authorization: `Bearer ${token}` },
       params: {
-        q: `${title} ${artist} ${album}`,
+        q: `${processedTitle} ${processedArtist}`,
         type: "track",
-        limit: 1,
+        limit: 3,
       },
     });
 
     const tracks = response.data.tracks.items;
-
-    if (tracks.length > 0) {
-      const normalize = (str) =>
-        str
-          .toLowerCase()
-          .replace(/[^\w\s]/gi, "") // Remove special characters
-          .trim();
-
-      const normalizedTitle = normalize(title);
-      const normalizedArtist = normalize(artist);
-      const normalizedAlbum = album ? normalize(album) : null; // Album might be null
-
-      let bestMatch = null;
-      let bestScore = Infinity;
-
-      for (const track of tracks) {
-        const trackTitle = normalize(track.name);
-        const trackAlbum = normalize(track.album.name);
-        const trackArtists = track.artists.map((a) => normalize(a.name));
-
-        // 🔹 Calculate similarity scores
-        const titleDistance = levenshtein.get(normalizedTitle, trackTitle);
-        const albumDistance = normalizedAlbum
-          ? levenshtein.get(normalizedAlbum, trackAlbum)
-          : 0;
-        const artistMatch = trackArtists.includes(normalizedArtist) ? 0 : 10; // Penalize mismatched artist
-
-        // 🔹 Calculate total score (lower is better)
-        const totalScore = titleDistance + albumDistance + artistMatch;
-
-        // 🔹 Select the best match with the lowest score
-        if (totalScore < bestScore) {
-          bestScore = totalScore;
-          bestMatch = track;
-        }
-      }
-      if (bestMatch) {
-        console.log(
-          `✅ Closest match: ${bestMatch.name} by ${bestMatch.artists
-            .map((a) => a.name)
-            .join(", ")}`
-        );
-        return bestMatch.external_urls.spotify;
-      } else {
-        console.warn(
-          `⚠️ No good match found for ${title} - ${artist} on Spotify.`
-        );
-        return null;
-      }
+    for (track of tracks) {
+      console.log(
+        `🎵 Found: ${track.name} by ${track.artists
+          .map((a) => a.name)
+          .join(", ")}`
+      );
     }
 
-    console.warn(`⚠️ No Spotify results found for ${title} - ${artist}.`);
+    if (tracks.length > 0) {
+      // ✅ Default to first result, but avoid instrumentals/karaoke versions
+      let selectedTrack = tracks[0];
+
+      for (const track of tracks) {
+        if (!/\b(instrumental|karaoke)\b/i.test(track.name)) {
+          selectedTrack = track; // ✅ Select first non-instrumental/karaoke track
+          break;
+        }
+      }
+
+      console.log(
+        `✅ Selected: ${selectedTrack.name} by ${selectedTrack.artists
+          .map((a) => a.name)
+          .join(", ")}`
+      );
+
+      return selectedTrack.external_urls.spotify;
+    }
+
+    console.warn(
+      `⚠️ No suitable match found for ${title} - ${artist} on Spotify.`
+    );
     return null;
   } catch (error) {
     console.error(
@@ -141,14 +127,6 @@ async function fetchFromSpotify(title, artist, album) {
  * @returns {Promise<string|null>} Spotify URL or null if not found
  */
 async function fetchSpotifyUrl(title, artist, album) {
-  const cacheKey = `spotify_${title}_${artist}_${album}`;
-  const cachedData = getCache(cacheKey);
-
-  if (cachedData) {
-    console.log(`✅ Loaded Spotify URL from cache for ${title} - ${artist}`);
-    return cachedData;
-  }
-
   const client = await pool.connect();
 
   try {
@@ -164,7 +142,6 @@ async function fetchSpotifyUrl(title, artist, album) {
 
       if (spotify_url) {
         console.log(`✅ Using existing Spotify URL for ${title} - ${artist}`);
-        setCache(cacheKey, spotify_url);
         return spotify_url;
       }
     }
@@ -179,10 +156,6 @@ async function fetchSpotifyUrl(title, artist, album) {
        WHERE title = $2 AND artist_id = (SELECT id FROM artists WHERE name = $3 LIMIT 1)`,
       [spotifyUrl, title, artist]
     );
-
-    // ✅ Store in cache
-    setCache(cacheKey, spotifyUrl);
-    console.log(`✅ Spotify URL saved: ${spotifyUrl}`);
 
     return spotifyUrl;
   } catch (error) {

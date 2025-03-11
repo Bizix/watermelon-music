@@ -276,9 +276,6 @@
   .animate-pulse {
     animation: var(--animate-pulse);
   }
-  .cursor-not-allowed {
-    cursor: not-allowed;
-  }
   .cursor-pointer {
     cursor: pointer;
   }
@@ -421,9 +418,6 @@
   }
   .italic {
     font-style: italic;
-  }
-  .opacity-50 {
-    opacity: 50%;
   }
   .shadow-lg {
     --tw-shadow: 0 10px 15px -3px var(--tw-shadow-color, rgb(0 0 0 / 0.1)), 0 4px 6px -4px var(--tw-shadow-color, rgb(0 0 0 / 0.1));
