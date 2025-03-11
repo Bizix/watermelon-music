@@ -1,5 +1,5 @@
 <template>
-  <div class="song-card w-full flex flex-col p-4 shadow-lg border-t transition-colors" >
+  <div class="song-card w-full flex flex-col p-4 shadow-lg border-t transition-colors">
       
     <div class="flex items-center gap-4 w-full">
       <!-- ✅ Rank -->
@@ -21,7 +21,7 @@
         <p class="text-sm italic text-surface-600">{{ song.album }}</p>
       </div>
 
-      <!-- ✅ Action Buttons -->
+      <!-- ✅ Action Buttons (Only Rendered If URL Exists) -->
       <div class="flex items-center gap-3">
         <template v-for="(button, index) in actionButtons" :key="index">
           <a
@@ -33,12 +33,6 @@
           >
             <i :class="button.icon"></i>
           </a>
-          <span
-            v-else
-            class="text-xl opacity-50 cursor-not-allowed pointer-events-none"
-          >
-            <i :class="button.icon"></i>
-          </span>
         </template>
 
         <button @click="toggleExpand"
@@ -119,7 +113,6 @@ export default {
   }
 };
 </script>
-
 
 <style scoped>
 /* ✅ Smooth Fade Transition */
