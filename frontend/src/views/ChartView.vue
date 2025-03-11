@@ -107,10 +107,10 @@ export default {
       await fetchData(newGenre);
     }
 
-    // ✅ Filter NaN ranks
+    // ✅ Filter out songs with null ranks
     const filteredRankings = ref([]);
-    watchEffect(() => {
-      filteredRankings.value = rankings.value.filter((song) => !isNaN(song.rank));
+      watchEffect(() => {
+      filteredRankings.value = rankings.value.filter((song) => song.rank !== 0);
       checkScroll();
     });
 
