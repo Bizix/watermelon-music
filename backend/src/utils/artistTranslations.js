@@ -145,6 +145,7 @@ const artistTranslationMap = {
     "김채원": "Kim Chaewon",
     "허윤진": "Huh Yunjin",
     "필헌": "Feel Heon",
+    "이창섭": "LEECHANGSUB",
 };
 module.exports = artistTranslationMap;   
   
