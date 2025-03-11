@@ -1,6 +1,5 @@
 const pool = require("../config/db");
 const { scrapeMelonCharts } = require("./scraper");
-const { getCache, setCache } = require("./cacheService");
 const { fetchYouTubeUrl, resetYouTubeQuota } = require("../api/youtubeService");
 const { fetchSpotifyUrl } = require("../api/spotifyService");
 
@@ -110,22 +109,6 @@ async function updateStreamingUrlsForGenre(songs, platform) {
  * @returns {Promise<Object[]>} Updated rankings
  */
 async function saveToDatabase(genreCode = "DM0000") {
-  console.log(`🟢 Checking cache for genre: ${genreCode}`);
-
-  // ✅ 1️⃣ Check if cached data is still valid
-  const cachedData = getCache(genreCode);
-
-  if (cachedData) {
-    console.log(
-      `✅ Using cached data for ${genreCode} (updated recently). Skipping scrape.`
-    );
-    return cachedData; // ✅ Stop execution before trying to scrape
-  }
-
-  console.log(
-    `🟢 Cache expired or missing. Checking database for last update...`
-  );
-
   const client = await pool.connect();
 
   try {
@@ -146,7 +129,7 @@ async function saveToDatabase(genreCode = "DM0000") {
     const previousSongIds = new Set(existingRankings.map((song) => song.id));
     const newSongIds = new Set();
 
-    // ✅ If no cache, check last scrape time from database
+    // ✅ Check last scrape time from database
     const lastScrapeTime = lastUpdated ? new Date(lastUpdated).getTime() : 0;
     const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
 
@@ -154,7 +137,6 @@ async function saveToDatabase(genreCode = "DM0000") {
       console.log(
         `✅ Rankings were scraped recently (within 24 hours). Using existing DB data.`
       );
-      setCache(genreCode, existingRankings); // ✅ Store existing rankings in cache
       return existingRankings;
     }
 
@@ -245,12 +227,6 @@ async function saveToDatabase(genreCode = "DM0000") {
     await updateStreamingUrlsForGenre(rankedSongs, "youtube");
     await updateStreamingUrlsForGenre(rankedSongs, "spotify");
 
-    if (scrapedSongs.length > 0) {
-      setCache(genreCode, rankedSongs);
-    } else {
-      console.warn(`⚠️ Not updating cache since no new scrape occurred.`);
-    }
-
     // return updatedRankings;
 
   } catch (error) {
@@ -268,8 +244,6 @@ async function saveToDatabase(genreCode = "DM0000") {
  */
 async function scrapeAndSaveGenre(genreCode) {
   try {
-    console.log(`🔄 Starting scraping process for genre: ${genreCode}`);
-
     resetYouTubeQuota(); // ✅ Reset YouTube quota flag before each scrape
 
     await saveToDatabase(genreCode);

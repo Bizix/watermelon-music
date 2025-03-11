@@ -18,28 +18,19 @@ function getScrapeStatus(genreCode) {
 async function shouldScrapeGenre(genreCode, client) {
   try {
     const result = await client.query(
-      `SELECT 
-        g.last_updated, 
-        EXISTS (
-            SELECT 1 FROM songs s 
-            JOIN song_rankings sr ON s.id = sr.song_id
-            WHERE sr.genre_id = g.id 
-            AND (s.youtube_url IS NULL OR s.youtube_last_updated IS NULL)
-        ) AS missing_youtube
-      FROM genres g
-      WHERE g.code = $1`,
+      `SELECT g.last_updated 
+       FROM genres g
+       WHERE g.code = $1`,
       [genreCode]
     );
 
     if (result.rows.length === 0) return true; // ✅ If genre doesn't exist, scrape
 
-    const { last_updated: lastUpdated, missing_youtube: missingYouTube } =
-      result.rows[0];
+    const { last_updated: lastUpdated } = result.rows[0];
 
     return (
-      !lastUpdated ||
-      Date.now() - new Date(lastUpdated).getTime() > 24 * 60 * 60 * 1000 ||
-      missingYouTube
+      !lastUpdated ||  // ✅ If last_updated is NULL, force a scrape
+      Date.now() - new Date(lastUpdated).getTime() > 24 * 60 * 60 * 1000  // ✅ Only scrape if last update was over 24 hours ago
     );
   } catch (error) {
     console.error(`❌ Error checking update conditions for ${genreCode}:`, error);
@@ -53,11 +44,20 @@ async function shouldScrapeGenre(genreCode, client) {
  * @returns {Promise<Object[]>} - Rankings data
  */
 async function getRankings(genreCode) {
-  console.log(`🟢 Checking cache for genre: ${genreCode}`);
+  console.log(`🟢 Checking cache for genre via rankingsService: ${genreCode}`);
 
   // ✅ Return cached data if available
   const cachedData = getCache(genreCode);
-  if (cachedData) return cachedData;
+  if (cachedData) {
+    console.log(
+      `✅ Using cached data for ${genreCode} (updated recently). Skipping scrape.`
+    );
+    return cachedData; // ✅ Prevent scraping if cache exists
+  }
+
+  console.log(
+    `🟢 Cache expired or missing. Checking database for last update...`
+  );
 
   const client = await pool.connect();
   try {
