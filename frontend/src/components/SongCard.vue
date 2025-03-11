@@ -21,7 +21,7 @@
         <p class="text-sm italic text-surface-600">{{ song.album }}</p>
       </div>
 
-      <!-- ✅ Action Buttons (Only Rendered If URL Exists) -->
+      <!-- ✅ Action Buttons -->
       <div class="flex items-center gap-3">
         <template v-for="(button, index) in actionButtons" :key="index">
           <a
@@ -35,19 +35,28 @@
           </a>
         </template>
 
+        <!-- ✅ Lyrics Button -->
         <button @click="toggleExpand"
           class="px-3 py-1 text-sm font-medium rounded-lg cursor-pointer transition-colors 
                 bg-[var(--p-primary-color)] text-white hover:bg-[var(--p-primary-400)]">
           Lyrics
         </button>
-
       </div>
     </div>
 
     <!-- ✅ Expanded Lyrics Section -->
     <transition name="fade">
-      <div v-if="isExpanded" class="mt-3 p-3 rounded-lg border-t w-full bg-surface-200 border-surface-300">
-        <p class="italic text-surface-700">Lyrics will go here...</p>
+      <div v-if="isExpanded" class="mt-3 p-3 text-center border-t w-full bg-surface-200 border-surface-300">
+        
+        <div v-if="isLoading" class="flex flex-grow items-center justify-center">
+          <LoadingSpinner :isLoading="true" message="Loading data..." size="w-10 h-10" color="fill-green-500" />
+       </div>
+
+        <!-- ✅ Display Lyrics -->
+        <p v-else-if="lyrics" class="whitespace-pre-line pt-3 text-surface-700">{{ lyrics }}</p>
+
+        <!-- ✅ Error Message -->
+        <p v-else class="italic text-surface-700 pt-3">❌ Lyrics not found.</p>
       </div>
     </transition>
   </div>
@@ -55,6 +64,7 @@
 
 <script>
 import { ref, computed } from "vue";
+import LoadingSpinner from "@/components/LoadingSpinner.vue";
 
 export default {
   props: {
@@ -65,61 +75,51 @@ export default {
   },
   setup(props) {
     const isExpanded = ref(false);
+    const lyrics = ref(null);
+    const loadingLyrics = ref(false);
     const cache = new Map(); // ✅ Simple in-memory cache
 
-    async function openYouTube() {
-      let youtubeUrl = cache.get(props.song.id) || props.song.youtube_url;
+    async function fetchLyrics() {
+      if (lyrics.value || loadingLyrics.value) return; // ✅ Prevent duplicate requests
 
-      if (!youtubeUrl) {
-        try {
-          const response = await fetch(
-            `http://localhost:5000/api/youtube?title=${encodeURIComponent(props.song.title)}&artist=${encodeURIComponent(props.song.artist)}`
-          );
+      loadingLyrics.value = true;
+      try {
+        const response = await fetch(
+          `http://localhost:5000/api/lyrics?title=${encodeURIComponent(props.song.title)}&artist=${encodeURIComponent(props.song.artist)}`
+        );
 
-          const data = await response.json();
-          if (response.ok && data.youtubeUrl) {
-            youtubeUrl = data.youtubeUrl;
-            cache.set(props.song.id, youtubeUrl);
-          } else {
-            console.error("❌ No YouTube URL found:", data.error);
-            return;
-          }
-        } catch (error) {
-          console.error("❌ Failed to fetch YouTube URL:", error);
-          return;
+        const data = await response.json();
+        if (response.ok && data.lyrics) {
+          lyrics.value = data.lyrics;
+        } else {
+          console.error("❌ No lyrics found:", data.error);
         }
+      } catch (error) {
+        console.error("❌ Failed to fetch lyrics:", error);
+      } finally {
+        loadingLyrics.value = false;
       }
-
-      // ✅ Open YouTube link in a new tab
-      window.open(youtubeUrl, "_blank");
     }
 
     const toggleExpand = () => {
       isExpanded.value = !isExpanded.value;
+      if (isExpanded.value) fetchLyrics();
     };
 
     const actionButtons = computed(() => [
-      { url: props.song.youtube_url, icon: "pi pi-youtube", color: "text-red-500 hover:text-red-600", action: openYouTube },
+      { url: props.song.youtube_url, icon: "pi pi-youtube", color: "text-red-500 hover:text-red-600" },
       { url: props.song.apple_music_url, icon: "pi pi-apple", color: "text-gray-300 hover:text-gray-400" },
       { url: props.song.spotify_url, icon: "fab fa-spotify", color: "text-green-400 hover:text-green-500" }
     ]);
 
     return {
-      openYouTube,
       isExpanded,
+      lyrics,
+      loadingLyrics,
       toggleExpand,
       actionButtons,
+      LoadingSpinner,
     };
   }
 };
 </script>
-
-<style scoped>
-/* ✅ Smooth Fade Transition */
-.fade-enter-active, .fade-leave-active {
-  transition: opacity 0.3s ease-in-out;
-}
-.fade-enter, .fade-leave-to {
-  opacity: 0;
-}
-</style>

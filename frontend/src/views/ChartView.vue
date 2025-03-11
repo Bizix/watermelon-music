@@ -30,7 +30,7 @@
       @genre-selected="handleGenreChange"
     />
 
-    <!-- ✅ Loading Bar -->
+    <!-- ✅ Loading Spinner -->
     <div v-if="isLoading" class="flex flex-grow items-center justify-center">
       <LoadingSpinner :isLoading="true" message="Loading data..." size="w-10 h-10" color="fill-green-500" />
     </div>
