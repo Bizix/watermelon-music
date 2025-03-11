@@ -32,7 +32,7 @@
 
     <!-- ✅ Loading Bar -->
     <div v-if="isLoading" class="flex flex-grow items-center justify-center">
-      <LoadingBar :isLoading="isLoading" message="Loading songs..." size="h-2" />
+      <LoadingSpinner :isLoading="true" message="Loading data..." size="w-10 h-10" color="fill-green-500" />
     </div>
 
     <!-- ✅ Song List -->
@@ -48,7 +48,7 @@
 <script>
 import { ref, watchEffect, onMounted, inject } from "vue";
 import GenreSelector from "@/components/GenreSelector.vue";
-import LoadingBar from "@/components/LoadingBar.vue";
+import LoadingSpinner from "@/components/LoadingSpinner.vue";
 import SongCard from "@/components/SongCard.vue";
 import ScrollIndicator from "@/components/ScrollIndicator.vue";
 import { fetchRankings } from "@/api/fetchRankings.ts";
@@ -75,7 +75,7 @@ const genreMap = {
 export default {
   components: {
     GenreSelector,
-    LoadingBar,
+    LoadingSpinner,
     SongCard,
     ScrollIndicator,
   },
