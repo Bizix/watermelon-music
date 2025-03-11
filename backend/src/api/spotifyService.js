@@ -64,9 +64,9 @@ async function fetchFromSpotify(title, artist, album) {
     const response = await axios.get(SPOTIFY_SEARCH_URL, {
       headers: { Authorization: `Bearer ${token}` },
       params: {
-        q: `${artist} ${title}`,
+        q: `${title} ${artist} ${album}`,
         type: "track",
-        limit: 5,
+        limit: 1,
       },
     });
 

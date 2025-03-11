@@ -32,7 +32,7 @@ async function fetchExistingRankings(genreId) {
   try {
     const result = await client.query(
       `SELECT s.id, s.title, a.name AS artist, s.album, s.art, sr.rank, 
-              s.youtube_url, s.youtube_last_updated, s.spotify_url
+              s.youtube_url, s.youtube_last_updated, s.spotify_url, sr.scraped_at
        FROM song_rankings sr
        JOIN songs s ON sr.song_id = s.id
        JOIN artists a ON s.artist_id = a.id
@@ -59,13 +59,18 @@ async function updateStreamingUrlsForGenre(songs, platform) {
 
   const client = await pool.connect();
   const column = platform === "youtube" ? "youtube_url" : "spotify_url";
-  const fetchFunction = platform === "youtube" ? fetchYouTubeUrl : fetchSpotifyUrl;
+  const fetchFunction =
+    platform === "youtube" ? fetchYouTubeUrl : fetchSpotifyUrl;
   const updates = [];
 
   try {
     for (const song of songs) {
       if (!song[column]) {
-        console.log(`🔎 Fetching ${platform.toUpperCase()} URL for: ${song.title} - ${song.artist}`);
+        console.log(
+          `🔎 Fetching ${platform.toUpperCase()} URL for: ${song.title} - ${
+            song.artist
+          }`
+        );
 
         try {
           const newUrl =
@@ -78,7 +83,11 @@ async function updateStreamingUrlsForGenre(songs, platform) {
             song[column] = newUrl; // ✅ Update in-memory reference
           }
         } catch (error) {
-          console.error(`❌ Failed to fetch ${platform.toUpperCase()} URL for ${song.title} - ${song.artist}`);
+          console.error(
+            `❌ Failed to fetch ${platform.toUpperCase()} URL for ${
+              song.title
+            } - ${song.artist}`
+          );
         }
       }
     }
@@ -105,12 +114,18 @@ async function saveToDatabase(genreCode = "DM0000") {
 
   // ✅ 1️⃣ Check if cached data is still valid
   const cachedData = getCache(genreCode);
+
   if (cachedData) {
-    console.log(`✅ Loaded rankings from cache for genre: ${genreCode}`);
-    return cachedData;
+    console.log(
+      `✅ Using cached data for ${genreCode} (updated recently). Skipping scrape.`
+    );
+    return cachedData; // ✅ Stop execution before trying to scrape
   }
 
-  console.log(`🟢 Cache expired or missing. Checking database for last update...`);
+  console.log(
+    `🟢 Cache expired or missing. Checking database for last update...`
+  );
+
   const client = await pool.connect();
 
   try {
@@ -119,26 +134,42 @@ async function saveToDatabase(genreCode = "DM0000") {
       `INSERT INTO genres (code, name) 
        VALUES ($1, COALESCE($2, 'Unknown')) 
        ON CONFLICT (code) DO UPDATE SET name = EXCLUDED.name 
-       RETURNING id`,
+       RETURNING id, last_updated`,
       [genreCode, genreMap[genreCode] || "Unknown"]
     );
 
     const genreId = genreResult.rows[0].id;
+    const lastUpdated = genreResult.rows[0].last_updated;
 
     // ✅ 3️⃣ Fetch existing rankings before inserting new ones
     const existingRankings = await fetchExistingRankings(genreId);
-    const previousSongIds = new Set(existingRankings.map(song => song.id)); // ✅ Store previous song IDs
-    const newSongIds = new Set(); // ✅ Will hold new scraped song IDs
+    const previousSongIds = new Set(existingRankings.map((song) => song.id));
+    const newSongIds = new Set();
 
-    console.log(`🟢 No recent rankings found, scraping new data...`);
+    // ✅ If no cache, check last scrape time from database
+    const lastScrapeTime = lastUpdated ? new Date(lastUpdated).getTime() : 0;
+    const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+
+    if (lastScrapeTime && Date.now() - lastScrapeTime < TWENTY_FOUR_HOURS) {
+      console.log(
+        `✅ Rankings were scraped recently (within 24 hours). Using existing DB data.`
+      );
+      setCache(genreCode, existingRankings); // ✅ Store existing rankings in cache
+      return existingRankings;
+    }
 
     // ✅ 4️⃣ Scrape and process new data
     const scrapedSongs = await scrapeMelonCharts(genreCode);
+
     await client.query("BEGIN"); // ✅ Start transaction
 
     // ✅ 5️⃣ Ensure all artists exist
-    const existingArtistsRes = await client.query(`SELECT id, name FROM artists`);
-    const existingArtists = new Map(existingArtistsRes.rows.map((a) => [a.name, a.id]));
+    const existingArtistsRes = await client.query(
+      `SELECT id, name FROM artists`
+    );
+    const existingArtists = new Map(
+      existingArtistsRes.rows.map((a) => [a.name, a.id])
+    );
 
     const artistIds = {};
     for (const song of scrapedSongs) {
@@ -148,7 +179,9 @@ async function saveToDatabase(genreCode = "DM0000") {
            ON CONFLICT (name) DO NOTHING RETURNING id`,
           [song.artist]
         );
-        artistIds[song.artist] = artistRes.rows.length ? artistRes.rows[0].id : existingArtists.get(song.artist);
+        artistIds[song.artist] = artistRes.rows.length
+          ? artistRes.rows[0].id
+          : existingArtists.get(song.artist);
         existingArtists.set(song.artist, artistIds[song.artist]);
       } else {
         artistIds[song.artist] = existingArtists.get(song.artist);
@@ -183,26 +216,43 @@ async function saveToDatabase(genreCode = "DM0000") {
     }
 
     // ✅ 8️⃣ Identify songs that dropped off the chart and mark them as "N/A"
-    const droppedSongIds = [...previousSongIds].filter(id => !newSongIds.has(id));
+    const droppedSongIds = [...previousSongIds].filter(
+      (id) => !newSongIds.has(id)
+    );
     if (droppedSongIds.length > 0) {
-      console.log(`⚠️ Marking ${droppedSongIds.length} songs as "N/A" for genre: ${genreCode}`);
+      console.log(
+        `⚠️ Marking ${droppedSongIds.length} songs as "N/A" for genre: ${genreCode}`
+      );
       await client.query(
-        `UPDATE song_rankings SET rank = NULL WHERE song_id = ANY($1) AND genre_id = $2`,
+        `UPDATE song_rankings SET rank = 0 WHERE song_id = ANY($1) AND genre_id = $2`,
         [droppedSongIds, genreId]
       );
     }
 
     await client.query("COMMIT"); // ✅ Commit transaction
 
+    await client.query(`UPDATE genres SET last_updated = NOW() WHERE id = $1`, [
+      genreId,
+    ]);
+
     console.log(`✅ Successfully updated rankings for genre: ${genreCode}!`);
 
-    // ✅ 9️⃣ Update YouTube & Spotify URLs for new songs
-    const updatedRankings = await fetchExistingRankings(genreId);
-    await updateStreamingUrlsForGenre(updatedRankings, "youtube");
-    await updateStreamingUrlsForGenre(updatedRankings, "spotify");
+    // ✅ 9️⃣ Fetch updated rankings and filter out rank = 0 songs
+    const rankedSongs = (await fetchExistingRankings(genreId)).filter(
+      (song) => song.rank !== 0
+    );
 
-    setCache(genreCode, updatedRankings);
-    return updatedRankings;
+    await updateStreamingUrlsForGenre(rankedSongs, "youtube");
+    await updateStreamingUrlsForGenre(rankedSongs, "spotify");
+
+    if (scrapedSongs.length > 0) {
+      setCache(genreCode, rankedSongs);
+    } else {
+      console.warn(`⚠️ Not updating cache since no new scrape occurred.`);
+    }
+
+    // return updatedRankings;
+
   } catch (error) {
     await client.query("ROLLBACK");
     console.error("❌ Error saving to database:", error);
@@ -211,7 +261,6 @@ async function saveToDatabase(genreCode = "DM0000") {
     client.release();
   }
 }
-
 
 /**
  * ✅ Scrape and Save Genre
@@ -224,7 +273,9 @@ async function scrapeAndSaveGenre(genreCode) {
     resetYouTubeQuota(); // ✅ Reset YouTube quota flag before each scrape
 
     await saveToDatabase(genreCode);
-    console.log(`✅ Successfully scraped and saved rankings for genre: ${genreCode}`);
+    console.log(
+      `✅ Successfully scraped and saved rankings for genre: ${genreCode}`
+    );
   } catch (error) {
     console.error(`❌ Scraping failed for genre ${genreCode}:`, error);
     throw new Error(`Scraping process failed: ${error.message}`);
