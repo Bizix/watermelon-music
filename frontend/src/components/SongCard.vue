@@ -49,7 +49,7 @@
       <div v-if="isExpanded" class="mt-3 p-3 text-center border-t w-full bg-surface-200 border-surface-300">
       
         <!-- ✅ Show Spinner While Loading -->
-        <div v-if="isLoading" class="flex flex-grow items-center justify-center">
+        <div v-if="isLoading" class="flex flex-grow pt-3 items-center justify-center">
           <LoadingSpinner :isLoading="true" message="Loading lyrics..." size="w-10 h-10" color="fill-green-500" />
         </div>
 
