@@ -170,16 +170,18 @@ async function saveToDatabase(genreCode = "DM0000") {
       }
     }
 
-    // ✅ 6️⃣ Ensure all songs exist
+    // ✅ Ensure all songs exist with melon_song_id
     const songIds = {};
     for (const song of scrapedSongs) {
       const songRes = await client.query(
-        `INSERT INTO songs (title, artist_id, album, art, youtube_url, youtube_last_updated, spotify_url, scraped_at) 
-         VALUES ($1, $2, $3, $4, NULL, NULL, NULL, NOW()) 
+        `INSERT INTO songs (title, artist_id, album, art, melon_song_id, youtube_url, youtube_last_updated, spotify_url, scraped_at) 
+         VALUES ($1, $2, $3, $4, $5, NULL, NULL, NULL, NOW()) 
          ON CONFLICT (title, artist_id) 
-         DO UPDATE SET album = EXCLUDED.album, art = EXCLUDED.art, scraped_at = NOW()
+         DO UPDATE SET album = EXCLUDED.album, art = EXCLUDED.art, 
+                       melon_song_id = COALESCE(NULLIF(EXCLUDED.melon_song_id, songs.melon_song_id), songs.melon_song_id), 
+                       scraped_at = NOW()
          RETURNING id`,
-        [song.title, artistIds[song.artist], song.album, song.art]
+        [song.title, artistIds[song.artist], song.album, song.art, song.key]
       );
       const songId = songRes.rows[0].id;
       songIds[song.title] = songId;
@@ -201,12 +203,18 @@ async function saveToDatabase(genreCode = "DM0000") {
     const droppedSongIds = [...previousSongIds].filter(
       (id) => !newSongIds.has(id)
     );
+
     if (droppedSongIds.length > 0) {
       console.log(
         `⚠️ Marking ${droppedSongIds.length} songs as "N/A" for genre: ${genreCode}`
       );
+
       await client.query(
-        `UPDATE song_rankings SET rank = 0 WHERE song_id = ANY($1) AND genre_id = $2`,
+        `UPDATE song_rankings 
+         SET rank = 0 
+         WHERE song_id = ANY($1) 
+           AND genre_id = $2 
+           AND rank::integer <> 0`,
         [droppedSongIds, genreId]
       );
     }
@@ -228,7 +236,6 @@ async function saveToDatabase(genreCode = "DM0000") {
     await updateStreamingUrlsForGenre(rankedSongs, "spotify");
 
     // return updatedRankings;
-
   } catch (error) {
     await client.query("ROLLBACK");
     console.error("❌ Error saving to database:", error);

@@ -74,7 +74,7 @@ async function getRankings(genreCode) {
     // ✅ Fetch the updated rankings
     const rankingsResult = await client.query(
       `SELECT sr.rank, s.title, a.name AS artist, s.album, s.art, 
-              s.youtube_url, s.genius_url, s.spotify_url
+              s.youtube_url, s.spotify_url
        FROM song_rankings sr
        JOIN songs s ON sr.song_id = s.id
        JOIN artists a ON s.artist_id = a.id
