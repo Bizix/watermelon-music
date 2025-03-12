@@ -45,26 +45,26 @@
     </div>
 
     <!-- ✅ Expanded Lyrics Section -->
-    <transition name="fade">
       <div v-if="isExpanded" class="mt-3 p-3 text-center border-t w-full bg-surface-200 border-surface-300">
-        
-        <div v-if="isLoading" class="flex flex-grow items-center justify-center">
-          <LoadingSpinner :isLoading="true" message="Loading data..." size="w-10 h-10" color="fill-green-500" />
-       </div>
-
-        <!-- ✅ Display Lyrics -->
-        <p v-else-if="lyrics" class="whitespace-pre-line pt-3 text-surface-700">{{ lyrics }}</p>
-
-        <!-- ✅ Error Message -->
-        <p v-else class="italic text-surface-700 pt-3">❌ Lyrics not found.</p>
+      
+      <!-- ✅ Show Spinner While Loading -->
+      <div v-if="isLoading" class="flex flex-grow items-center justify-center">
+        <LoadingSpinner :isLoading="true" message="Loading lyrics..." size="w-10 h-10" color="fill-green-500" />
       </div>
-    </transition>
+
+      <!-- ✅ Display Lyrics -->
+      <p v-else-if="lyrics" class="whitespace-pre-line pt-3 text-surface-700">{{ lyrics }}</p>
+
+      <!-- ✅ Error Message -->
+      <p v-else class="italic text-surface-700 pt-3">❌ Lyrics not found.</p>
+
+    </div>
   </div>
 </template>
 
 <script>
 import { ref, computed } from "vue";
-import LoadingSpinner from "@/components/LoadingSpinner.vue";
+import LoadingSpinner from "../components/LoadingSpinner.vue";
 
 export default {
   props: {
@@ -76,13 +76,13 @@ export default {
   setup(props) {
     const isExpanded = ref(false);
     const lyrics = ref(null);
-    const loadingLyrics = ref(false);
+    const isLoading = ref(false);
     const cache = new Map(); // ✅ Simple in-memory cache
 
     async function fetchLyrics() {
-      if (lyrics.value || loadingLyrics.value) return; // ✅ Prevent duplicate requests
+      if (lyrics.value || isLoading.value) return; // ✅ Prevent duplicate requests
 
-      loadingLyrics.value = true;
+      isLoading.value = true;
       try {
         const response = await fetch(
           `http://localhost:5000/api/lyrics?title=${encodeURIComponent(props.song.title)}&artist=${encodeURIComponent(props.song.artist)}`
@@ -97,7 +97,7 @@ export default {
       } catch (error) {
         console.error("❌ Failed to fetch lyrics:", error);
       } finally {
-        loadingLyrics.value = false;
+        isLoading.value = false;
       }
     }
 
@@ -115,7 +115,7 @@ export default {
     return {
       isExpanded,
       lyrics,
-      loadingLyrics,
+      isLoading,
       toggleExpand,
       actionButtons,
       LoadingSpinner,

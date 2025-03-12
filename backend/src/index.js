@@ -7,7 +7,7 @@ const pool = require("./config/db");
 const scraperRoutes = require("./routes/scraperRoutes");
 const rankingsRoutes = require("./routes/rankingsRoutes");
 const youtubeRoutes = require("./routes/youtubeRoutes");
-
+const lyricsRoutes = require("./routes/lyricsRoutes");
 
 const app = express();
 
@@ -21,7 +21,7 @@ app.use(morgan("dev")); // ✅ Request logging
 app.use("/api", scraperRoutes);
 app.use("/api", rankingsRoutes);
 app.use("/api", youtubeRoutes);
-
+app.use("/api/lyrics", lyricsRoutes); 
 
 // ✅ Health Check Route
 app.get("/", (req, res) => {
