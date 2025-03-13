@@ -1,12 +1,26 @@
 <template>
-  <div class="song-card w-full flex flex-col p-4 shadow-lg border-t transition-colors">
+  <div class="song-card w-full flex flex-col p-4 shadow-lg border-t transition-colors" :data-song-id="song.melon_song_id">
       
     <div class="flex items-center gap-4 w-full">
-      <!-- ✅ Rank -->
-      <span class="font-bold text-lg min-w-[30px] text-center text-primary-500">
-        {{ song.rank }}
-      </span>
+      <!-- ✅ Rank with Movement -->
+      <div class="flex items-center min-w-[50px] justify-center gap-1">
+        <span class="font-bold text-lg text-primary-500 pr-1">
+          {{ song.rank }}
+        </span>
+        <span class="flex items-end text-sm gap-0.5" :class="{
+          'text-green-500 font-bold uppercase text-xs': song.movement === 'NEW',  // ✅ Style NEW in green & uppercase
+          'text-green-500': song.movement.includes('↑'),
+          'text-red-500': song.movement.includes('↓'),
+          'text-gray-500': song.movement === '-'
+        }">
+          <span v-if="song.movement === 'NEW'">NEW</span>
+          <template v-else>
+            <span class="text-base leading-none">{{ song.movement.charAt(0) }}</span>
+            <span class="text-xs leading-none">{{ song.movement.slice(1) }}</span>
+          </template>
+        </span>
 
+      </div>
       <!-- ✅ Album Art -->
       <img 
         :src="song.art" 
@@ -91,7 +105,7 @@ export default {
 
       try {
         const response = await fetch(
-          `http://localhost:5000/api/lyrics?title=${encodeURIComponent(props.song.title)}&artist=${encodeURIComponent(props.song.artist)}`
+          `http://localhost:5000/api/lyrics?title=${encodeURIComponent(props.song.title)}&artist=${encodeURIComponent(props.song.artist)}&songId=${props.song.melon_song_id}`
         );
 
         const data = await response.json();

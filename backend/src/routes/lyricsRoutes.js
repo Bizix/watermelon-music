@@ -8,7 +8,7 @@ const router = express.Router();
  * Fetch lyrics for a song, checking the database first, then scraping Genius.
  */
 router.get("/", async (req, res) => {
-  const { title, artist } = req.query;
+  const { title, artist, songId } = req.query;
 
   if (!title || !artist) {
     return res.status(400).json({ error: "Missing title or artist parameter." });
@@ -17,7 +17,7 @@ router.get("/", async (req, res) => {
   try {
     console.log(`🎶 Fetching lyrics for: ${title} - ${artist}`);
 
-    const lyrics = await getLyrics(title, artist);
+    const lyrics = await getLyrics(title, artist, songId);
 
     if (lyrics) {
       res.json({ title, artist, lyrics });

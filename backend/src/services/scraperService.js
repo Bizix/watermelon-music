@@ -126,6 +126,7 @@ async function saveToDatabase(genreCode = "DM0000") {
 
     // ✅ 3️⃣ Fetch existing rankings before inserting new ones
     const existingRankings = await fetchExistingRankings(genreId);
+
     const previousSongIds = new Set(existingRankings.map((song) => song.id));
     const newSongIds = new Set();
 
@@ -175,29 +176,38 @@ async function saveToDatabase(genreCode = "DM0000") {
     for (const song of scrapedSongs) {
       const songRes = await client.query(
         `INSERT INTO songs (title, artist_id, album, art, melon_song_id, youtube_url, youtube_last_updated, spotify_url, scraped_at) 
-         VALUES ($1, $2, $3, $4, $5, NULL, NULL, NULL, NOW()) 
+         VALUES ($1, $2, $3, $4, NULLIF($5, 0), NULL, NULL, NULL, NOW()) 
          ON CONFLICT (title, artist_id) 
-         DO UPDATE SET album = EXCLUDED.album, art = EXCLUDED.art, 
-                       melon_song_id = COALESCE(NULLIF(EXCLUDED.melon_song_id, songs.melon_song_id), songs.melon_song_id), 
+         DO UPDATE SET album = EXCLUDED.album, 
+                       art = EXCLUDED.art, 
+                       melon_song_id = COALESCE(songs.melon_song_id, NULLIF(EXCLUDED.melon_song_id, 0)), 
                        scraped_at = NOW()
          RETURNING id`,
         [song.title, artistIds[song.artist], song.album, song.art, song.key]
       );
+
       const songId = songRes.rows[0].id;
-      songIds[song.title] = songId;
+      songIds[`${song.title}-${song.artist}`] = songId;
       newSongIds.add(songId);
     }
 
-    // ✅ 7️⃣ Insert or update rankings
     for (const song of scrapedSongs) {
+      const songId = songIds[`${song.title}-${song.artist}`];
+    
+      if (!songId) {
+        console.error(`❌ Missing song ID for: ${song.title} by ${song.artist}`);
+        continue; // ✅ Skip inserting if we don't have a song ID
+      }
+    
       await client.query(
-        `INSERT INTO song_rankings (song_id, genre_id, rank, scraped_at) 
-         VALUES ($1, $2, $3, NOW()) 
+        `INSERT INTO song_rankings (song_id, genre_id, rank, movement, scraped_at) 
+         VALUES ($1, $2, $3, $4, NOW()) 
          ON CONFLICT (song_id, genre_id) 
-         DO UPDATE SET rank = EXCLUDED.rank, scraped_at = NOW()`,
-        [songIds[song.title], genreId, song.rank]
+         DO UPDATE SET rank = EXCLUDED.rank, movement = EXCLUDED.movement, scraped_at = NOW()`,
+        [songId, genreId, song.rank, song.movement]
       );
     }
+    
 
     // ✅ 8️⃣ Identify songs that dropped off the chart and mark them as "N/A"
     const droppedSongIds = [...previousSongIds].filter(
@@ -208,7 +218,6 @@ async function saveToDatabase(genreCode = "DM0000") {
       console.log(
         `⚠️ Marking ${droppedSongIds.length} songs as "N/A" for genre: ${genreCode}`
       );
-
       await client.query(
         `UPDATE song_rankings 
          SET rank = 0 
