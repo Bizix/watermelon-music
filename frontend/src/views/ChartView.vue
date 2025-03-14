@@ -1,27 +1,4 @@
 <template>
-  <div class="chart-container pt-3 w-full mx-auto flex flex-col h-screen transition-colors">
-    <!-- ✅ Header Section -->
-    <div class="relative flex justify-center items-center my-6">
-      <!-- ✅ Title -->
-      <h1 class="text-3xl font-extrabold text-center"
-          :style="{ color: 'var(--p-primary-color)' }">
-        Melon Chart - {{ genreMap[selectedGenre] || 'Unknown Genre' }}
-      </h1>
-
-      <!-- ✅ Theme Toggle Button -->
-      <button
-        @click="toggleDarkMode"
-        class="absolute right-4 top-0 w-10 h-10 flex items-center justify-center rounded-lg transition-all duration-500"
-        :class="{
-          'bg-[var(--p-primary-color)] text-white hover:bg-[var(--p-primary-400)]': !isDarkMode,
-          'bg-[var(--p-surface-50)] text-white hover:bg-[var(--p-surface-100)]': isDarkMode
-        }"
-      >
-        <i v-if="isDarkMode" class="pi pi-moon text-lg"></i>
-        <i v-else class="pi pi-sun text-lg"></i>
-      </button>
-    </div>
-
     <!-- ✅ Genre Selector -->
     <GenreSelector 
       :selectedGenre="selectedGenre"
@@ -42,7 +19,6 @@
 
     <!-- ✅ Scroll Indicator -->
     <ScrollIndicator v-if="!isLoading" :showScrollIndicator="showScrollIndicator" />
-  </div>
 </template>
 
 <script>
