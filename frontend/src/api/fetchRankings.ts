@@ -17,7 +17,7 @@ interface Song {
 export async function fetchRankings(genreCode: string): Promise<Song[]> {
   try {
     const response = await axios.get(`http://localhost:5000/api/rankings?genre=${genreCode}`);
-    console.log(response.data);
+    // console.log(response.data);
     return response.data
       .map((song: Song) => ({
         ...song,

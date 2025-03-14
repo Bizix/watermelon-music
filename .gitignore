@@ -1,3 +1,4 @@
 # .gitignore
 /backend/.env
+/frontend/.env
 /frontend/src/output.css
