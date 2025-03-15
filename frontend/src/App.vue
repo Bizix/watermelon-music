@@ -12,8 +12,7 @@ const { isDarkMode, toggleDarkMode } = useDarkMode();
     <div class="chart-container pt-3 w-full mx-auto flex flex-col h-screen transition-colors">
     <!-- ✅ New Header Component -->
     <AppHeader />
-    
-        <!-- ✅ Main Chart View -->
+    <!-- ✅ Main Chart View -->
     <ChartView />
     </div>
   </div>

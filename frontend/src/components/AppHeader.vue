@@ -11,17 +11,17 @@
     <!-- ✅ Right-side Controls -->
     <div class="absolute right-4 top-0 flex items-center gap-4">
       
-      <!-- ✅ Menu (Shown for both logged-in & logged-out users) -->
+      <!-- ✅ Menu -->
       <div class="relative" ref="menuRef">
         <button 
-            @click="toggleUserMenu"
-            class="px-4 py-2 rounded-lg transition-all duration-300"
-            :class="{
-                'bg-[var(--p-primary-color)] text-white hover:bg-[var(--p-primary-400)]': !isDarkMode,
-                'bg-[var(--p-surface-50)] text-white hover:bg-[var(--p-surface-100)]': isDarkMode
-            }"
-            >
-            Menu
+          @click="toggleUserMenu"
+          class="px-4 py-2 rounded-lg transition-all duration-300"
+          :class="{
+            'bg-[var(--p-primary-color)] text-white hover:bg-[var(--p-primary-400)]': !isDarkMode,
+            'bg-[var(--p-surface-50)] text-white hover:bg-[var(--p-surface-100)]': isDarkMode
+          }"
+        >
+          Menu
         </button>
 
         <!-- ✅ User Menu (Logged In) -->
@@ -44,7 +44,7 @@
             Playlists
           </button>
           <button 
-            @click="handleMenuClick(goToSettings)" 
+          @click="openModal(SettingsView)"
             class="block w-full text-left px-3 py-2 text-sm"
             :class="{
               'hover:bg-gray-300': !isDarkMode,
@@ -75,7 +75,7 @@
           }"
         >
           <button 
-            @click="handleMenuClick(() => showLoginModal = true)" 
+            @click="openModal(LoginView)" 
             class="block w-full text-left px-3 py-2 text-sm hover:rounded-t-lg"
             :class="{
               'hover:bg-gray-300': !isDarkMode,
@@ -85,7 +85,7 @@
             Log In
           </button>
           <button 
-            @click="handleMenuClick(() => showSignUpModal = true)" 
+            @click="openModal(SignUpView)" 
             class="block w-full text-left px-3 py-2 text-sm hover:rounded-b-lg"
             :class="{
               'hover:bg-gray-300': !isDarkMode,
@@ -96,6 +96,7 @@
           </button>
         </div>
       </div>
+      
 
       <!-- ✅ Theme Toggle -->
       <button
@@ -112,8 +113,12 @@
     </div>
 
     <!-- ✅ Modals -->
-    <LoginModal v-if="showLoginModal" @close="showLoginModal = false" />
-    <SignUpModal v-if="showSignUpModal" @close="showSignUpModal = false" />
+    <Modal 
+        v-if="activeModalComponent"
+        :modalComponent="activeModalComponent"
+        :modalProps="activeModalProps"
+        @close="closeModal"
+    />
   </div>
 </template>
 
@@ -122,9 +127,15 @@
   <script setup>
   import { ref, onMounted, onUnmounted, inject } from "vue";
   import { supabase } from "@/lib/supabaseClient";
-  import LoginModal from "@/components/LoginModal.vue";
-//   import SignUpModal from "@/components/SignUpModal.vue";
-  
+
+  import Modal from "@/components/Modal.vue";
+  import LoginView from "@/views/LoginView.vue";
+  import SignUpView from "@/views/SignUpView.vue";
+  import SettingsView from "@/views/SettingsView.vue";
+
+
+
+
   const isDarkMode = inject("isDarkMode");
   const toggleDarkMode = inject("toggleDarkMode");
   
@@ -132,7 +143,8 @@
   const showUserMenu = ref(false);
   const showLoginModal = ref(false);
   const showSignUpModal = ref(false);
-
+  const activeModalComponent = ref(null);
+  const activeModalProps = ref({});
   const menuRef = ref(null);
   
   onMounted(async () => {
@@ -149,6 +161,17 @@
      document.removeEventListener("click", closeMenuOnOutsideClick);
     });
 
+  function openModal(component, props = {}) {
+    activeModalComponent.value = component;
+    activeModalProps.value = props;
+    showUserMenu.value = false;
+ }
+
+  function closeModal() {
+    activeModalComponent.value = null;
+    activeModalProps.value = {};
+ }
+  
   async function logout() {
     await supabase.auth.signOut();
     user.value = null;
@@ -173,10 +196,6 @@
 
   function goToPlaylists() {
     console.log("📂 Navigate to Playlists (Implement routing here)");
-    showUserMenu.value = false;
-  }
-  function goToSettings() {
-    console.log("⚙️ Navigate to Account Settings (Implement routing here)");
     showUserMenu.value = false;
   }
   </script>
