@@ -1,88 +1,122 @@
 <template>
-    <div class="flex flex-col items-center justify-center min-h-screen p-4">
-      <h2 class="text-2xl font-bold mb-4">Supabase Auth Test</h2>
-  
-      <!-- Email Login Form -->
-      <input v-model="email" type="email" placeholder="Email" class="border p-2 mb-2 w-64" />
-      <input v-model="password" type="password" placeholder="Password" class="border p-2 mb-2 w-64" />
-      <button @click="login" class="bg-green-500 text-white p-2 w-64">Login with Email</button>
-      <button @click="signUp" class="bg-blue-500 text-white p-2 w-64 mt-2">Sign Up</button>
-  
-      <!-- Google OAuth -->
-      <button @click="loginWithGoogle" class="bg-red-500 text-white p-2 w-64 mt-4">
-        Login with Google
+    <div class="relative w-96 p-6 rounded-lg shadow-lg transition-all duration-300 border"
+  :class="{
+        'bg-white text-black border-gray-300': !isDarkMode,
+        'bg-black text-white border-[var(--p-primary-400)]': isDarkMode
+    }">
+      <!-- ✅ Close Button -->
+      <button @click="$emit('close')" class="absolute top-3 right-3 text-xl">
+        ✖
       </button>
-  
-      <!-- Logout -->
-      <button @click="logout" class="bg-gray-500 text-white p-2 w-64 mt-4">
-        Logout
+
+      <!-- ✅ Login Title -->
+      <h2 class="text-2xl font-bold text-center mb-6"
+        :class="{
+          'text-[var(--p-primary-color)]': !isDarkMode,
+          'text-[var(--p-primary-400)]': isDarkMode
+        }">
+        Log In to WaterMelon
+      </h2>
+
+      <!-- ✅ Email Input -->
+      <input
+        v-model="email"
+        type="email"
+        placeholder="Email"
+        class="w-full p-3 mb-3 rounded-lg border transition-all duration-300"
+        :class="{
+          'border-gray-300 bg-gray-100 text-black focus:ring-2 focus:ring-[var(--p-primary-color)]': !isDarkMode,
+          'border-[var(--p-primary-400)] bg-black text-white focus:ring-2 focus:ring-[var(--p-primary-400)]': isDarkMode
+        }"
+      />
+
+      <!-- ✅ Password Input -->
+      <input
+        v-model="password"
+        type="password"
+        placeholder="Password"
+        class="w-full p-3 mb-3 rounded-lg border transition-all duration-300"
+        :class="{
+          'border-gray-300 bg-gray-100 text-black focus:ring-2 focus:ring-[var(--p-primary-color)]': !isDarkMode,
+          'border-[var(--p-primary-400)] bg-black text-white focus:ring-2 focus:ring-[var(--p-primary-400)]': isDarkMode
+        }"
+      />
+
+      <!-- ✅ Login Button -->
+      <button
+        @click="login"
+        class="w-full p-3 font-medium rounded-lg transition-all duration-300"
+        :class="{
+          'bg-[var(--p-primary-color)] text-white hover:bg-[var(--p-primary-400)]': !isDarkMode,
+          'bg-[var(--p-surface-50)] hover:bg-[var(--p-surface-100)]': isDarkMode
+        }"
+      >
+        Log In
       </button>
-  
-      <p v-if="user" class="mt-4 text-green-600">✅ Logged in as: {{ user.email }}</p>
-      <p v-if="errorMessage" class="mt-4 text-red-600">❌ {{ errorMessage }}</p>
+
+      <!-- ✅ Divider -->
+      <div class="my-4 text-center text-sm text-gray-400">OR</div>
+
+      <!-- ✅ Google Login -->
+      <button
+        @click="loginWithGoogle"
+        class="w-full p-3 rounded-lg flex items-center justify-center gap-2 transition-all duration-300"
+        :class="{
+          'bg-red-500 text-white hover:bg-red-600': !isDarkMode,
+          'bg-red-700 text-white hover:bg-red-800': isDarkMode
+        }"
+      >
+        <i class="pi pi-google"></i> Login with Google
+      </button>
+
+      <!-- ✅ Forgot Password -->
+      <p class="text-center text-sm mt-4">
+        <button @click="showResetPassword" class="text-blue-500 hover:underline">Forgot your password?</button>
+      </p>
+
+      <!-- ✅ Error Message -->
+      <p v-if="errorMessage" class="text-center text-red-500 mt-3">❌ {{ filteredErrorMessage }}</p>
     </div>
-  </template>
-  
-  <script setup>
-  import { ref, onMounted } from "vue";
-  import { supabase } from "@/lib/supabaseClient"; // ✅ Import Supabase Client
-  
-  const email = ref("");
-  const password = ref("");
-  const user = ref(null);
-  const errorMessage = ref("");
-  
-  // ✅ Check session when page loads
-  onMounted(async () => {
-    const { data: session } = await supabase.auth.getSession();
-    if (session?.user) {
-      user.value = session.user;
-    }
+</template>
+
+<script setup>
+import { ref, inject, computed } from "vue";
+import { supabase } from "@/lib/supabaseClient";
+
+const email = ref("");
+const password = ref("");
+const errorMessage = ref("");
+const isDarkMode = inject("isDarkMode"); // ✅ Inject dark mode state
+
+// ✅ Computed Property: Remove phone-related error messages
+const filteredErrorMessage = computed(() => {
+  if (!errorMessage.value) return "";
+  return errorMessage.value.replace("missing email or phone", "Please enter your email.");
+});
+
+// ✅ Login with email
+async function login() {
+  const { error } = await supabase.auth.signInWithPassword({
+    email: email.value,
+    password: password.value,
   });
-  
-  // ✅ Email login
-  async function login() {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: email.value,
-      password: password.value,
-    });
-    if (error) {
-      errorMessage.value = error.message;
-    } else {
-      user.value = data.user;
-      errorMessage.value = "";
-    }
-  }
-  
-  // ✅ Email sign up (for testing)
-  async function signUp() {
-    const { data, error } = await supabase.auth.signUp({
-      email: email.value,
-      password: password.value,
-    });
-    if (error) {
-      errorMessage.value = error.message;
-    } else {
-      user.value = data.user;
-      errorMessage.value = "✅ Sign-up successful! Please check your email to confirm.";
-    }
-  }
-  
-  // ✅ Google OAuth login
-  async function loginWithGoogle() {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-    });
-    if (error) {
-      errorMessage.value = error.message;
-    }
-  }
-  
-  // ✅ Logout
-  async function logout() {
-    await supabase.auth.signOut();
-    user.value = null;
+  if (error) {
+    errorMessage.value = error.message;
+  } else {
     errorMessage.value = "";
   }
-  </script>
-  
+}
+
+// ✅ Google OAuth login
+async function loginWithGoogle() {
+  const { error } = await supabase.auth.signInWithOAuth({ provider: "google" });
+  if (error) {
+    errorMessage.value = error.message;
+  }
+}
+
+// ✅ Forgot Password
+function showResetPassword() {
+  console.log("🔑 Show reset password modal (implement this)");
+}
+</script>
