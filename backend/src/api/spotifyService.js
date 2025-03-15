@@ -90,6 +90,7 @@ async function fetchFromSpotify(title, artist, album) {
       // ✅ Default to first result, but avoid instrumentals/karaoke versions
       let selectedTrack = tracks[0];
 
+
       for (const track of tracks) {
         if (!/\b(instrumental|karaoke)\b/i.test(track.name)) {
           selectedTrack = track; // ✅ Select first non-instrumental/karaoke track
@@ -103,7 +104,8 @@ async function fetchFromSpotify(title, artist, album) {
           .join(", ")}`
       );
 
-      return selectedTrack.external_urls.spotify;
+      console.log(selectedTrack.id);
+      return selectedTrack.id;
     }
 
     console.warn(

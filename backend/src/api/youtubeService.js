@@ -48,7 +48,7 @@ async function fetchFromYouTube(title, artist) {
       return null;
     }
 
-    return `https://www.youtube.com/watch?v=${response.data.items[0].id.videoId}`;
+    return `${response.data.items[0].id.videoId}`;
   } catch (error) {
     console.error(`❌ Error fetching YouTube data for ${title} - ${artist}:`, error);
     handleYouTubeQuotaError(error);
