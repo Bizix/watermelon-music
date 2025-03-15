@@ -130,7 +130,7 @@ export default {
     const actionButtons = [
       { url: `https://www.youtube.com/watch?v=${props.song.youtube_url}`, icon: "pi pi-youtube", color: "text-red-500 hover:text-red-600" },
       { url: props.song.apple_music_url, icon: "pi pi-apple", color: "text-gray-300 hover:text-gray-400" },
-      { url: props.song.spotify_url, icon: "fab fa-spotify", color: "text-green-400 hover:text-green-500" }
+      { url: `https://open.spotify.com/track/${props.song.spotify_url}`, icon: "fab fa-spotify", color: "text-green-400 hover:text-green-500" }
     ];
 
     return {
