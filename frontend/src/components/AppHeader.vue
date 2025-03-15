@@ -125,7 +125,7 @@
   
   
   <script setup>
-  import { ref, onMounted, onUnmounted, inject } from "vue";
+  import { ref, onMounted, onUnmounted, markRaw, inject } from "vue";
   import { supabase } from "@/lib/supabaseClient";
 
   import Modal from "@/components/Modal.vue";
@@ -147,26 +147,28 @@
   const activeModalProps = ref({});
   const menuRef = ref(null);
   
+  let authListener;
   onMounted(async () => {
     const { data: session } = await supabase.auth.getSession();
     document.addEventListener("click", closeMenuOnOutsideClick);
 
     user.value = session?.user || null;
-    supabase.auth.onAuthStateChange((_event, session) => {
+
+    authListener = supabase.auth.onAuthStateChange((_event, session) => {
       user.value = session?.user || null;
     });
   });
 
   onUnmounted(() => {
-     document.removeEventListener("click", closeMenuOnOutsideClick);
-    });
+    document.removeEventListener("click", closeMenuOnOutsideClick);
+    if (authListener) authListener.subscription.unsubscribe()
+  });
 
   function openModal(component, props = {}) {
-    activeModalComponent.value = component;
+    activeModalComponent.value = markRaw(component);
     activeModalProps.value = props;
     showUserMenu.value = false;
  }
-
   function closeModal() {
     activeModalComponent.value = null;
     activeModalProps.value = {};

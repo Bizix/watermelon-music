@@ -1,10 +1,11 @@
 import { createApp } from "vue";
+import App from "./App.vue";
+import router from "./router.ts";
 import PrimeVue from "primevue/config";
 import { definePreset } from "@primeuix/themes";
 import Aura from "@primeuix/themes/aura";
 import 'primeicons/primeicons.css';
 import "@fortawesome/fontawesome-free/css/all.min.css";
-import App from "./App.vue";
 import "./output.css";
 
 
@@ -103,7 +104,7 @@ const CustomPreset = definePreset(Aura, {
 
 const app = createApp(App);
 
-// ✅ Initialize PrimeVue with the theme
+app.use(router);
 app.use(PrimeVue, {
   theme: {
     preset: CustomPreset,

@@ -10,10 +10,8 @@ const { isDarkMode, toggleDarkMode } = useDarkMode();
 <template>
   <div class="relative min-h-screen">
     <div class="chart-container pt-3 w-full mx-auto flex flex-col h-screen transition-colors">
-    <!-- ✅ New Header Component -->
-    <AppHeader />
-    <!-- ✅ Main Chart View -->
-    <ChartView />
+      <AppHeader />
+      <router-view />
     </div>
   </div>
 </template>
