@@ -10,6 +10,21 @@
 
     <!-- ✅ Right-side Controls -->
     <div class="absolute right-4 top-0 flex items-center gap-4">
+
+         
+
+      <!-- ✅ Theme Toggle -->
+      <button
+        @click="toggleDarkMode"
+        class="w-10 h-10 flex items-center justify-center rounded-lg transition-all duration-500"
+        :class="{
+          'bg-[var(--p-primary-color)] text-white hover:bg-[var(--p-primary-400)]': !isDarkMode,
+          'bg-[var(--p-surface-50)] text-white hover:bg-[var(--p-surface-100)]': isDarkMode
+        }"
+      >
+        <i v-if="isDarkMode" class="pi pi-moon text-lg"></i>
+        <i v-else class="pi pi-sun text-lg"></i>
+      </button>
       
       <!-- ✅ Menu -->
       <div class="relative" ref="menuRef">
@@ -96,20 +111,6 @@
           </button>
         </div>
       </div>
-      
-
-      <!-- ✅ Theme Toggle -->
-      <button
-        @click="toggleDarkMode"
-        class="w-10 h-10 flex items-center justify-center rounded-lg transition-all duration-500"
-        :class="{
-          'bg-[var(--p-primary-color)] text-white hover:bg-[var(--p-primary-400)]': !isDarkMode,
-          'bg-[var(--p-surface-50)] text-white hover:bg-[var(--p-surface-100)]': isDarkMode
-        }"
-      >
-        <i v-if="isDarkMode" class="pi pi-moon text-lg"></i>
-        <i v-else class="pi pi-sun text-lg"></i>
-      </button>
     </div>
 
     <!-- ✅ Modals -->
@@ -118,6 +119,7 @@
         :modalComponent="activeModalComponent"
         :modalProps="activeModalProps"
         @close="closeModal"
+        @closeAll="handleLogout"
     />
   </div>
 </template>
@@ -127,6 +129,7 @@
   <script setup>
   import { ref, onMounted, onUnmounted, markRaw, inject } from "vue";
   import { supabase } from "@/lib/supabaseClient";
+  import emitter from "@/lib/emitter";
 
   import Modal from "@/components/Modal.vue";
   import LoginView from "@/views/LoginView.vue";
@@ -148,20 +151,30 @@
   const menuRef = ref(null);
   
   let authListener;
+  let authUnsubscribe = null;
+
   onMounted(async () => {
-    const { data: session } = await supabase.auth.getSession();
+    await refreshUserState();
+
     document.addEventListener("click", closeMenuOnOutsideClick);
 
-    user.value = session?.user || null;
+      // ✅ Listen for account deletion event
+    emitter.on("accountDeleted", handleAccountDeletion);
 
-    authListener = supabase.auth.onAuthStateChange((_event, session) => {
-      user.value = session?.user || null;
-    });
+    authUnsubscribe = supabase.auth.onAuthStateChange((_event, session) => {
+    console.log("🔄 Auth state changed:", session);
+    user.value = session?.user || null; // ✅ Update user state
+  });
   });
 
   onUnmounted(() => {
     document.removeEventListener("click", closeMenuOnOutsideClick);
-    if (authListener) authListener.subscription.unsubscribe()
+
+    emitter.off("accountDeleted", handleAccountDeletion);
+    // ✅ Properly unsubscribe if authListener exists
+    if (authListener && typeof authListener.unsubscribe === "function") {
+      authListener.unsubscribe(); 
+    }
   });
 
   function openModal(component, props = {}) {
@@ -176,8 +189,33 @@
   
   async function logout() {
     await supabase.auth.signOut();
-    user.value = null;
+    await refreshUserState();
   }
+
+  async function handleLogout() {
+  console.log("🔒 User logged out, updating state...");
+  activeModalComponent.value = null;
+  await refreshUserState();
+  closeModal();
+}
+
+async function refreshUserState() {
+  console.log("🔄 Refreshing user state...");
+  const { data: session, error } = await supabase.auth.getSession();
+  if (error) console.error("Error fetching session:", error);
+  user.value = session?.user || null;
+  console.log("✅ User state updated:", user.value);
+}
+
+async function handleAccountDeletion() {
+  console.log("🗑️ Account deleted, updating auth state...");
+
+  // ✅ Force a full auth state reset
+  await supabase.auth.signOut();
+  await refreshUserState(); // Ensure user is null
+
+  console.log("🚪 User should now be logged out.");
+}
 
   function toggleUserMenu(event) {
   event.stopPropagation(); // Prevent immediate closing when clicking the button

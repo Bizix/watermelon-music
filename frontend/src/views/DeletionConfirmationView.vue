@@ -49,29 +49,40 @@
   </template>
   
   <script setup>
-  import { inject, ref } from "vue";
+  import { inject, ref, defineEmits } from "vue";
   import { supabase } from "@/lib/supabaseClient"; 
   import { useRouter } from "vue-router";  
+  import emitter from "@/lib/emitter";
 
   const isDarkMode = inject("isDarkMode");
   const isDeleting = ref(false);
+  const emit = defineEmits(["close", "closeAll", "logout"]);
+
   const router = useRouter();
+  const BACKEND_URL = "http://localhost:5000"; // Adjust based on your actual backend server port
   
   async function deleteAccount() {
-    if (isDeleting.value) return;
-    isDeleting.value = true;
-  
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-  
-    if (userError || !user?.id) {
+  if (isDeleting.value) return;
+  isDeleting.value = true;
+
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+  if (userError || !user?.id) {
     console.error("User not found or error:", userError);
     isDeleting.value = false;
     return;
   }
 
   try {
-    // Make a secure API call to delete user (backend needed)
-    const response = await fetch("/api/delete-user", {
+    // First, delete user playlists
+    // await fetch(`${BACKEND_URL}/api/delete-playlists`, {
+    //   method: "POST",
+    //   headers: { "Content-Type": "application/json" },
+    //   body: JSON.stringify({ userId: user.id }),
+    // });
+
+    // Then, delete the user account
+    const response = await fetch(`${BACKEND_URL}/api/delete-user`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId: user.id }),
@@ -83,17 +94,27 @@
       throw new Error(result.error || "Failed to delete user");
     }
 
-    // Sign out after deletion
-    await supabase.auth.signOut();
+    // ✅ Only sign out if the user is still logged in
+    const { data: session } = await supabase.auth.getSession();
 
-    // Redirect user to the Goodbye page
-    router.push("/goodbye");
+        // ✅ Ensure Supabase completely signs the user out
+        await supabase.auth.signOut();
+
+    // ✅ Emit event to close all modals
+    emitter.emit("accountDeleted");
+
+    emit("close");
+    emit("logout");
+    emit("closeAll");
+
+    // Redirect user
+    router.push("/");
 
   } catch (error) {
     console.error("Error deleting account:", error.message);
   } finally {
     isDeleting.value = false;
   }
-  }
+}
   </script>
   

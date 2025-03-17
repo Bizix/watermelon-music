@@ -1,4 +1,4 @@
-<template id="SettingsView">
+<template>
   <div v-if="!isSettingsHidden" class="relative w-96 p-6 rounded-lg shadow-lg transition-all duration-300 border"
     :class="{
       'bg-white text-black border-gray-300': !isDarkMode,
@@ -55,6 +55,7 @@
     :modalComponent="activeModalComponent"
     :modalProps="activeModalProps"
     @close="closeModal"
+    @closeAll="closeModal"
   />
 </template>
 
@@ -80,5 +81,6 @@ function openModal(component, props = {}) {
 function closeModal() {
   activeModalComponent.value = null;
   isSettingsHidden.value = false; // Show settings again
+  emit("close");
 }
 </script>

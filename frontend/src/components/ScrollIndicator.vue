@@ -4,7 +4,7 @@
     class="absolute bottom-0 left-0 w-full h-12 flex justify-center items-end pointer-events-none"
     :style="gradientStyle"
   >
-    <p class="text-[var(--p-text-secondary)] text-sm animate-bounce">↓ Scroll for more ↓</p>
+    <p class="text-[var(--p-text-secondary)] text-sm animate-bounce">↓</p>
   </div>
 </template>
 

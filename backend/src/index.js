@@ -8,6 +8,7 @@ const scraperRoutes = require("./routes/scraperRoutes");
 const rankingsRoutes = require("./routes/rankingsRoutes");
 const youtubeRoutes = require("./routes/youtubeRoutes");
 const lyricsRoutes = require("./routes/lyricsRoutes");
+const deletionRoutes = require ("./routes/deletionRoutes.js"); 
 
 const app = express();
 
@@ -21,6 +22,7 @@ app.use(morgan("dev")); // ✅ Request logging
 app.use("/api", scraperRoutes);
 app.use("/api", rankingsRoutes);
 app.use("/api", youtubeRoutes);
+app.use("/api", deletionRoutes);
 app.use("/api/lyrics", lyricsRoutes); 
 
 // ✅ Health Check Route
