@@ -8,15 +8,24 @@
       <button @click="$emit('close')" class="absolute top-3 right-3 text-xl">
         ✖
       </button>
+      
+    <!-- ✅ Show Spinner While Loading -->
+        <!-- ✅ Show Spinner While Loading -->
+        <div v-if="isLoading" class="flex flex-grow pt-3 items-center justify-center">
+          <LoadingSpinner :isLoading="true" message="Logging In..." size="w-10 h-10" color="fill-green-500" />
+        </div>
 
-      <!-- ✅ Login Title -->
-      <h2 class="text-2xl font-bold text-center mb-6"
+        
+        <div v-else> 
+ <!-- ✅ Login Title -->
+ <h2 class="text-2xl font-bold text-center mb-6"
         :class="{
           'text-[var(--p-primary-color)]': !isDarkMode,
           'text-[var(--p-primary-400)]': isDarkMode
         }">
         Log In to WaterMelon
       </h2>
+      
 
       <!-- ✅ Email Input -->
       <input
@@ -76,17 +85,24 @@
 
       <!-- ✅ Error Message -->
       <p v-if="errorMessage" class="text-center text-red-500 mt-3">❌ {{ filteredErrorMessage }}</p>
+
+        </div>
+
+     
     </div>
 </template>
 
 <script setup>
-import { ref, inject, computed } from "vue";
+import { ref, inject, computed, defineEmits } from "vue";
 import { supabase } from "@/lib/supabaseClient";
+import LoadingSpinner from "@/components/LoadingSpinner.vue";
 
 const email = ref("");
 const password = ref("");
 const errorMessage = ref("");
 const isDarkMode = inject("isDarkMode"); // ✅ Inject dark mode state
+const isLoading = ref(false);
+const emit = defineEmits(["close"]);
 
 // ✅ Computed Property: Remove phone-related error messages
 const filteredErrorMessage = computed(() => {
@@ -96,14 +112,18 @@ const filteredErrorMessage = computed(() => {
 
 // ✅ Login with email
 async function login() {
+  isLoading.value = true;
+
   const { error } = await supabase.auth.signInWithPassword({
     email: email.value,
     password: password.value,
   });
   if (error) {
     errorMessage.value = error.message;
+    isLoading.value = false;
   } else {
     errorMessage.value = "";
+    emit("close");
   }
 }
 
