@@ -55,6 +55,43 @@
                 bg-[var(--p-primary-color)] text-white hover:bg-[var(--p-primary-400)]">
           Lyrics
         </button>
+
+      <!-- ✅ Action Buttons -->
+      <div class="relative">
+        <!-- ✅ Add to Playlist Button -->
+        <button v-if="user" @click="togglePlaylistMenu"
+          class="px-3 py-1 text-sm font-medium rounded-lg cursor-pointer transition-colors 
+                bg-green-500 text-white hover:bg-green-600">
+          + Add to Playlist
+        </button>
+
+        <!-- ✅ Playlist Dropdown -->
+        <div v-if="showPlaylistMenu" class="absolute right-0 mt-2 w-48 bg-white shadow-lg border rounded-lg p-2 z-50">
+          <button @click="showNewPlaylistInput = true" class="w-full text-left px-2 py-1 text-sm font-medium hover:bg-gray-100 rounded">
+            ➕ Add to new playlist
+          </button>
+
+          <!-- ✅ New Playlist Input -->
+          <div v-if="showNewPlaylistInput" class="mt-2">
+            <input v-model="newPlaylistName" type="text" placeholder="Playlist name..."
+              class="w-full px-2 py-1 text-sm border rounded-lg focus:ring-2 focus:ring-green-500">
+            <button @click="createPlaylist" class="mt-1 w-full px-2 py-1 text-sm font-medium bg-green-500 text-white rounded-lg">
+              Create
+            </button>
+          </div>
+
+          <!-- ✅ Existing Playlists -->
+          <p v-if="playlists.length === 0" class="text-xs text-center text-gray-500 mt-2">No playlists found.</p>
+          <div v-for="playlist in playlists" :key="playlist.id" class="flex items-center justify-between px-2 py-1 hover:bg-gray-100 rounded">
+            <span class="text-sm">{{ playlist.name }}</span>
+            <button @click="toggleSongInPlaylist(playlist.id)"
+              class="text-sm px-2 py-0.5 rounded bg-gray-200 hover:bg-gray-300">
+              {{ playlist.songs.includes(song.melon_song_id) ? "−" : "+" }}
+            </button>
+          </div>
+          </div>
+          </div>
+
       </div>
     </div>
 
@@ -79,7 +116,8 @@
 </template>
 
 <script>
-import { ref, watchEffect } from "vue";
+import { ref, watchEffect, inject } from "vue";
+import { supabase } from "@/lib/supabaseClient"; 
 import LoadingSpinner from "@/components/LoadingSpinner.vue";
 
 export default {
@@ -96,6 +134,74 @@ export default {
     const isExpanded = ref(false);
     const lyrics = ref(null);
     const isLoading = ref(false);
+
+
+    // TODO START
+    const user = inject("user");
+    const playlists = ref([]);
+    const showPlaylistMenu = ref(false);
+    const showNewPlaylistInput = ref(false);
+    const newPlaylistName = ref("");
+
+    // ✅ Get logged-in user state
+    async function fetchUser() {
+    const { data: session } = await supabase.auth.getSession();
+    if (session?.user) {
+      user.value = session.user;
+      await fetchPlaylists(); // ✅ Fetch playlists after user state is set
+    }
+  }
+    fetchUser();
+
+    async function fetchPlaylists() {
+      if (!user.value) return;
+      const { data, error } = await supabase
+        .from("playlists")
+        .select("id, name, songs")
+        .eq("user_id", user.value.id);
+
+      if (!error) playlists.value = data || [];
+    }
+
+  async function createPlaylist() {
+    if (!user.value || !newPlaylistName.value.trim()) return;
+
+    const { data, error } = await supabase
+      .from("playlists")
+      .insert([{ user_id: user.value.id, name: newPlaylistName.value.trim(), songs: [] }])
+      .select()
+      .single();
+
+    if (!error && data) {
+      playlists.value.push(data);
+      newPlaylistName.value = "";
+      showNewPlaylistInput.value = false;
+    }
+  }
+
+  async function toggleSongInPlaylist(playlistId) {
+    const playlist = playlists.value.find(p => p.id === playlistId);
+    if (!playlist) return;
+
+    const updatedSongs = playlist.songs.includes(props.song.melon_song_id)
+      ? playlist.songs.filter(songId => songId !== props.song.melon_song_id)
+      : [...playlist.songs, props.song.melon_song_id];
+
+    const { error } = await supabase
+      .from("playlists")
+      .update({ songs: updatedSongs })
+      .eq("id", playlistId);
+
+    if (!error) {
+      playlist.songs = updatedSongs;
+    }
+  }
+
+  function togglePlaylistMenu() {
+    showPlaylistMenu.value = !showPlaylistMenu.value;
+  }
+
+  // TODO END
 
     async function fetchLyrics() {
       if (lyrics.value || isLoading.value) return;
@@ -139,6 +245,16 @@ export default {
       isLoading,
       toggleExpand,
       actionButtons,
+      user,
+      playlists,
+      showPlaylistMenu,
+      showNewPlaylistInput,
+      newPlaylistName,
+      fetchUser,
+      fetchPlaylists,
+      createPlaylist,
+      toggleSongInPlaylist,
+      togglePlaylistMenu
     };
   }
 };

@@ -1,10 +1,33 @@
 <script setup>
-import { useDarkMode } from "@/composables/useDarkMode";
+import { ref, provide, onMounted } from "vue";
+import { supabase } from "@/lib/supabaseClient";
 
+import { useDarkMode } from "@/composables/useDarkMode";
 import AppHeader from "@/components/AppHeader.vue";
 import ChartView from "@/views/ChartView.vue";
 
 const { isDarkMode, toggleDarkMode } = useDarkMode();
+
+const user = ref(null);
+
+async function refreshUserState() {
+  console.log("🔄 Refreshing user state...");
+  const { data: session, error } = await supabase.auth.getSession();
+  if (error) console.error("Error fetching session:", error);
+  user.value = session?.user || null;
+  console.log("✅ Global User State Updated:", user.value);
+}
+
+
+onMounted(async () => {
+    await refreshUserState(); // 🔄 Fetch session on mount
+
+    supabase.auth.onAuthStateChange((_event, session) => {
+      console.log("🔄 Global Auth State Changed:", session);
+      user.value = session?.user || null; // ✅ Ensures reactivity
+    });
+  });provide("user", user);
+  
 </script>
 
 <template>
