@@ -1,5 +1,5 @@
 <template>
-    <div class="relative w-96 p-6 rounded-lg shadow-lg transition-all duration-300 border"
+    <div v-if="!isResetPasswordModalOpen" @close="$emit('close')" class="relative w-96 p-6 rounded-lg shadow-lg transition-all duration-300 border"
   :class="{
         'bg-white text-black border-gray-300': !isDarkMode,
         'bg-black text-white border-[var(--p-primary-400)]': isDarkMode
@@ -80,28 +80,32 @@
 
       <!-- ✅ Forgot Password -->
       <p class="text-center text-sm mt-4">
-        <button @click="showResetPassword" class="text-blue-500 hover:underline">Forgot your password?</button>
+        <button @click="isResetPasswordModalOpen = true" class="text-blue-500 hover:underline">Forgot your password?</button>
       </p>
 
       <!-- ✅ Error Message -->
       <p v-if="errorMessage" class="text-center text-red-500 mt-3">❌ {{ filteredErrorMessage }}</p>
-
         </div>
-
-     
     </div>
+
+      <!-- ✅ Show Reset Password Modal -->
+  <Modal v-if="isResetPasswordModalOpen" :modalComponent="ResetPasswordModal" @close="isResetPasswordModalOpen = false" />
 </template>
 
 <script setup>
 import { ref, inject, computed, defineEmits } from "vue";
 import { supabase } from "@/lib/supabaseClient";
 import LoadingSpinner from "@/components/LoadingSpinner.vue";
+import ResetPasswordModal from "@/views/ResetPasswordView.vue";
+import Modal from "@/components/Modal.vue";
 
 const email = ref("");
 const password = ref("");
 const errorMessage = ref("");
 const isDarkMode = inject("isDarkMode"); // ✅ Inject dark mode state
 const isLoading = ref(false);
+const isResetPasswordModalOpen = ref(false);
+
 const emit = defineEmits(["close"]);
 
 // ✅ Computed Property: Remove phone-related error messages
