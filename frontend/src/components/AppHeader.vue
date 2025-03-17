@@ -59,7 +59,7 @@
             Playlists
           </button>
           <button 
-          @click="openModal(SettingsView)"
+          @click="openModal(SettingsModal)"
             class="block w-full text-left px-3 py-2 text-sm"
             :class="{
               'hover:bg-gray-300': !isDarkMode,
@@ -90,7 +90,7 @@
           }"
         >
           <button 
-            @click="openModal(LoginView)" 
+            @click="openModal(LoginModal)" 
             class="block w-full text-left px-3 py-2 text-sm hover:rounded-t-lg"
             :class="{
               'hover:bg-gray-300': !isDarkMode,
@@ -100,7 +100,7 @@
             Log In
           </button>
           <button 
-            @click="openModal(SignUpView)" 
+            @click="openModal(SignUpModal)" 
             class="block w-full text-left px-3 py-2 text-sm hover:rounded-b-lg"
             :class="{
               'hover:bg-gray-300': !isDarkMode,
@@ -132,9 +132,9 @@
   import emitter from "@/lib/emitter";
 
   import Modal from "@/components/Modal.vue";
-  import LoginView from "@/views/LoginView.vue";
-  import SignUpView from "@/views/SignUpView.vue";
-  import SettingsView from "@/views/SettingsView.vue";
+  import LoginModal from "@/components/modals/LoginModal.vue";
+  import SignUpModal from "@/components/modals/SignUpModal.vue";
+  import SettingsModal from "@/components/modals/SettingsModal.vue";
 
 
 

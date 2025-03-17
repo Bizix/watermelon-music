@@ -96,7 +96,7 @@
 import { ref, inject, computed, defineEmits } from "vue";
 import { supabase } from "@/lib/supabaseClient";
 import LoadingSpinner from "@/components/LoadingSpinner.vue";
-import ResetPasswordModal from "@/views/ResetPasswordView.vue";
+import ResetPasswordModal from "@/components/modals/ResetPasswordModal.vue";
 import Modal from "@/components/Modal.vue";
 
 const email = ref("");

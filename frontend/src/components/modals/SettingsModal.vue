@@ -30,7 +30,7 @@
     </button>
     
     <!-- Change Password (Only for Email Users) -->
-    <button v-if="!isOAuthUser" @click="openModal(ChangePasswordView)"
+    <button v-if="!isOAuthUser" @click="openModal(ChangePasswordModal)"
       class="w-full px-4 py-2 font-medium rounded-lg mt-4 transition-all duration-300"
       :class="{
         'bg-[var(--p-primary-color)] text-white hover:bg-[var(--p-primary-400)]': !isDarkMode,
@@ -40,7 +40,7 @@
     </button>
     
     <!-- Delete Account -->
-    <button @click="openModal(DeletionConfirmationView)"
+    <button @click="openModal(DeletionConfirmationModal)"
       class="w-full px-4 py-2 font-medium rounded-lg mt-4 text-red-500 border border-red-400 transition-all duration-300"
       :class="{
         'hover:bg-red-100': !isDarkMode,
@@ -64,8 +64,8 @@
 import { inject, ref, defineEmits, markRaw, onMounted } from "vue";
 import { supabase } from "@/lib/supabaseClient"; 
 import Modal from "@/components/Modal.vue";
-import ChangePasswordView from "./ChangePasswordView.vue";
-import DeletionConfirmationView from "./DeletionConfirmationView.vue";
+import ChangePasswordModal from "@/components/modals/ChangePasswordModal.vue";
+import DeletionConfirmationModal from "./DeletionConfirmationModal.vue";
 
 const emit = defineEmits(["close"]);
 
