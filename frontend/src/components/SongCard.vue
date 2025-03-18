@@ -72,19 +72,19 @@
             'bg-[var(--p-surface-50)] text-black': !isDarkMode,
             'bg-[var(--p-surface-100)] text-white': isDarkMode
           }">
-          <button @click="showNewPlaylistInput = true" class="w-full text-center px-3 py-2 text-xs font-medium hover:bg-gray-100"
+        <button @click="toggleNewPlaylistInput" class="w-full text-center px-3 py-2 text-xs font-medium hover:bg-gray-100"
           :class="{
-              'hover:bg-gray-300 rounded-t-lg': !isDarkMode,
-              'dark:hover:bg-[var(--p-surface-500)] rounded-t-lg': isDarkMode
-            }">
-            Add to new playlist 
-          </button>
+            'hover:bg-gray-300 rounded-t-lg': !isDarkMode,
+            'dark:hover:bg-[var(--p-surface-500)] rounded-t-lg': isDarkMode
+          }">
+          Add to new playlist
+        </button>
 
           <!-- ✅ New Playlist Input -->
           <div v-if="showNewPlaylistInput">
             <input v-model="newPlaylistName" type="text" placeholder="Playlist name..."
               class="w-full px-2 py-1 text-sm border-none outline-none focus:ring-0 focus:border-transparent">
-            <button @click="createPlaylist" class="w-full px-2 py-1 text-sm font-medium bg-green-500 text-white">
+            <button @click="createPlaylist" class="w-full px-2 py-1 text-sm font-medium bg-green-500 cursor-pointer text-white">
               Create
             </button>
           </div>
@@ -157,12 +157,13 @@ export default {
     const playlistMenuRef = ref(null);
   
     function closeMenuOnOutsideClick(event) {
-  setTimeout(() => {
-    if (playlistMenuRef.value && !playlistMenuRef.value.contains(event.target)) {
-      showPlaylistMenu.value = false;
+      setTimeout(() => {
+        if (playlistMenuRef.value && !playlistMenuRef.value.contains(event.target)) {
+          showPlaylistMenu.value = false;
+          showNewPlaylistInput.value = false;
+        }
+      }, 100); // 🔥 Allows Vue to update first before checking
     }
-  }, 100); // 🔥 Allows Vue to update first before checking
-}
     
     onMounted(() => {
       document.addEventListener("click", closeMenuOnOutsideClick);
@@ -226,10 +227,22 @@ export default {
     }
   }
 
-  function togglePlaylistMenu(event) {
-  event.stopPropagation(); // ✅ Prevents event bubbling
-  showPlaylistMenu.value = !showPlaylistMenu.value;
+  // ✅ Toggle "Add to new playlist" input
+  function toggleNewPlaylistInput() {
+  if (!showPlaylistMenu.value) {
+    showPlaylistMenu.value = true; // ✅ Ensure the dropdown is open before toggling input
+  }
+  showNewPlaylistInput.value = !showNewPlaylistInput.value; // ✅ Toggle input
 }
+
+
+    function togglePlaylistMenu(event) {
+      event.stopPropagation(); // ✅ Prevents event bubbling
+      if (showPlaylistMenu.value) {
+        showNewPlaylistInput.value = false; // 🔥 Hide input when closing
+      }
+      showPlaylistMenu.value = !showPlaylistMenu.value;
+    }
 
   // TODO END
 
@@ -287,7 +300,8 @@ export default {
       togglePlaylistMenu,
       playlistMenuRef,
       closeMenuOnOutsideClick,
-      isDarkMode
+      isDarkMode,
+      toggleNewPlaylistInput
     };
   }
 };
