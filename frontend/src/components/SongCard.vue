@@ -58,34 +58,43 @@
 
       <!-- ✅ Action Buttons -->
       <div class="relative">
+        
         <!-- ✅ Add to Playlist Button -->
-        <button v-if="user" @click="togglePlaylistMenu"
-          class="px-3 py-1 text-sm font-medium rounded-lg cursor-pointer transition-colors 
-                bg-green-500 text-white hover:bg-green-600">
-          + Add to Playlist
+        <button v-if="user" @click="togglePlaylistMenu($event)"
+            class="text-slg font-medium rounded-lg cursor-pointer transition-colors 
+            text-[var(--p-primary-color)] hover:text-[var(--p-primary-400)]">
+            +
         </button>
 
         <!-- ✅ Playlist Dropdown -->
-        <div v-if="showPlaylistMenu" class="absolute right-0 mt-2 w-48 bg-white shadow-lg border rounded-lg p-2 z-50">
-          <button @click="showNewPlaylistInput = true" class="w-full text-left px-2 py-1 text-sm font-medium hover:bg-gray-100 rounded">
-            ➕ Add to new playlist
+        <div ref="playlistMenuRef" v-if="showPlaylistMenu" class="absolute right-0 mt-2 w-48 shadow-lg rounded-lg z-50"
+        :class="{
+            'bg-[var(--p-surface-50)] text-black': !isDarkMode,
+            'bg-[var(--p-surface-100)] text-white': isDarkMode
+          }">
+          <button @click="showNewPlaylistInput = true" class="w-full text-center px-3 py-2 text-xs font-medium hover:bg-gray-100"
+          :class="{
+              'hover:bg-gray-300 rounded-t-lg': !isDarkMode,
+              'dark:hover:bg-[var(--p-surface-500)] rounded-t-lg': isDarkMode
+            }">
+            Add to new playlist 
           </button>
 
           <!-- ✅ New Playlist Input -->
-          <div v-if="showNewPlaylistInput" class="mt-2">
+          <div v-if="showNewPlaylistInput">
             <input v-model="newPlaylistName" type="text" placeholder="Playlist name..."
-              class="w-full px-2 py-1 text-sm border rounded-lg focus:ring-2 focus:ring-green-500">
-            <button @click="createPlaylist" class="mt-1 w-full px-2 py-1 text-sm font-medium bg-green-500 text-white rounded-lg">
+              class="w-full px-2 py-1 text-sm border-none outline-none focus:ring-0 focus:border-transparent">
+            <button @click="createPlaylist" class="w-full px-2 py-1 text-sm font-medium bg-green-500 text-white">
               Create
             </button>
           </div>
 
           <!-- ✅ Existing Playlists -->
-          <p v-if="playlists.length === 0" class="text-xs text-center text-gray-500 mt-2">No playlists found.</p>
-          <div v-for="playlist in playlists" :key="playlist.id" class="flex items-center justify-between px-2 py-1 hover:bg-gray-100 rounded">
+          <p v-if="playlists.length === 0" class="text-xs text-center text-gray-500 px-2 py-1">No playlists found.</p>
+          <div v-for="playlist in playlists" :key="playlist.id" class="flex items-center justify-between absolute right-0 w-48 shadow-lg rounded-lg z-50">
             <span class="text-sm">{{ playlist.name }}</span>
             <button @click="toggleSongInPlaylist(playlist.id)"
-              class="text-sm px-2 py-0.5 rounded bg-gray-200 hover:bg-gray-300">
+              class="text-sm px-3 py-2 rounded bg-gray-200 hover:bg-gray-300">
               {{ playlist.songs.includes(song.melon_song_id) ? "−" : "+" }}
             </button>
           </div>
@@ -116,9 +125,10 @@
 </template>
 
 <script>
-import { ref, watchEffect, inject } from "vue";
+import { ref, watchEffect, inject, onMounted, onUnmounted } from "vue";
 import { supabase } from "@/lib/supabaseClient"; 
 import LoadingSpinner from "@/components/LoadingSpinner.vue";
+
 
 export default {
   props: {
@@ -134,6 +144,8 @@ export default {
     const isExpanded = ref(false);
     const lyrics = ref(null);
     const isLoading = ref(false);
+    const isDarkMode = inject("isDarkMode");
+
 
 
     // TODO START
@@ -142,6 +154,23 @@ export default {
     const showPlaylistMenu = ref(false);
     const showNewPlaylistInput = ref(false);
     const newPlaylistName = ref("");
+    const playlistMenuRef = ref(null);
+  
+    function closeMenuOnOutsideClick(event) {
+  setTimeout(() => {
+    if (playlistMenuRef.value && !playlistMenuRef.value.contains(event.target)) {
+      showPlaylistMenu.value = false;
+    }
+  }, 100); // 🔥 Allows Vue to update first before checking
+}
+    
+    onMounted(() => {
+      document.addEventListener("click", closeMenuOnOutsideClick);
+    });
+
+    onUnmounted(() => {
+      document.removeEventListener("click", closeMenuOnOutsideClick);
+    });
 
     // ✅ Get logged-in user state
     async function fetchUser() {
@@ -197,9 +226,10 @@ export default {
     }
   }
 
-  function togglePlaylistMenu() {
-    showPlaylistMenu.value = !showPlaylistMenu.value;
-  }
+  function togglePlaylistMenu(event) {
+  event.stopPropagation(); // ✅ Prevents event bubbling
+  showPlaylistMenu.value = !showPlaylistMenu.value;
+}
 
   // TODO END
 
@@ -254,7 +284,10 @@ export default {
       fetchPlaylists,
       createPlaylist,
       toggleSongInPlaylist,
-      togglePlaylistMenu
+      togglePlaylistMenu,
+      playlistMenuRef,
+      closeMenuOnOutsideClick,
+      isDarkMode
     };
   }
 };

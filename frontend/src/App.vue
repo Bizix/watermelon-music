@@ -18,7 +18,6 @@ async function refreshUserState() {
   console.log("✅ Global User State Updated:", user.value);
 }
 
-
 onMounted(async () => {
     await refreshUserState(); // 🔄 Fetch session on mount
 
@@ -26,8 +25,11 @@ onMounted(async () => {
       console.log("🔄 Global Auth State Changed:", session);
       user.value = session?.user || null; // ✅ Ensures reactivity
     });
-  });provide("user", user);
-  
+  });
+  provide("user", user);
+  provide("isDarkMode", isDarkMode);
+  provide("toggleDarkMode", toggleDarkMode);
+
 </script>
 
 <template>

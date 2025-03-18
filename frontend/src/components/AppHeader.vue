@@ -119,7 +119,7 @@
         :modalComponent="activeModalComponent"
         :modalProps="activeModalProps"
         @close="closeModal"
-        @closeAll="handleLogout"
+        @closeAll="logout"
     />
   </div>
 </template>
@@ -142,20 +142,15 @@
   const isDarkMode = inject("isDarkMode");
   const toggleDarkMode = inject("toggleDarkMode");
   
-  const user = ref(null);
+  const user = inject("user");
   const showUserMenu = ref(false);
-  const showLoginModal = ref(false);
-  const showSignUpModal = ref(false);
   const activeModalComponent = ref(null);
   const activeModalProps = ref({});
   const menuRef = ref(null);
   
-  let authListener;
   let authUnsubscribe = null;
 
   onMounted(async () => {
-    await refreshUserState();
-
     document.addEventListener("click", closeMenuOnOutsideClick);
 
       // ✅ Listen for account deletion event
@@ -191,13 +186,6 @@
     await supabase.auth.signOut();
     await refreshUserState();
   }
-
-  async function handleLogout() {
-  console.log("🔒 User logged out, updating state...");
-  activeModalComponent.value = null;
-  await refreshUserState();
-  closeModal();
-}
 
 async function refreshUserState() {
   console.log("🔄 Refreshing user state...");
