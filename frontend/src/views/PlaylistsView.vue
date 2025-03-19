@@ -2,8 +2,11 @@
 import { ref, onMounted } from "vue";
 import { usePlaylist } from "@/composables/usePlaylist";
 import { supabase } from "@/lib/supabaseClient";
+import { usePlaylist } from "@/composables/usePlaylist";
 
-const { playlists, fetchPlaylists, createPlaylist, addToPlaylist, removeFromPlaylist } = usePlaylist();
+const playlists = inject("playlists"); // ✅ Inject playlists from App.vue
+const { fetchPlaylists, createPlaylist, addToPlaylist, removeFromPlaylist } = usePlaylist();
+
 const user = ref(null);
 const newPlaylistName = ref("");
 

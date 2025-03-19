@@ -1,5 +1,6 @@
 const express = require("express");
-const {  createPlaylist,
+const {  getUserPlaylists,
+  createPlaylist,
   addSongToPlaylist,
   removeSongFromPlaylist,
   renamePlaylist,
@@ -8,17 +9,47 @@ const {  createPlaylist,
 
 const router = express.Router();
 
+
+/**
+ * ✅ Get all playlists for a user
+ */
+router.get("/", async (req, res) => {
+  const { userId } = req.query;
+
+  if (!userId) {
+    return res.status(400).json({ error: "Missing userId parameter" });
+  }
+
+  try {
+    const playlists = await getUserPlaylists(userId);
+    res.json(playlists);
+  } catch (error) {
+    console.error("❌ Error fetching playlists:", error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 /**
  * ✅ Create a Playlist
  */
 router.post("/create", async (req, res) => {
+  console.log("📥 Incoming request to /create:", req.body);
+
+  const { userId, name } = req.body;
+
+  if (!userId || !name || !name.trim()) {
+    console.log("❌ Invalid data received:", { userId, name });
+    return res.status(400).json({ error: "Invalid data." });
+  }
+
   try {
-    const { userId, name } = req.body;
     const playlist = await createPlaylist(userId, name);
     res.json(playlist);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error("❌ Error creating playlist:", error.message);
+    res.status(500).json({ error: error.message });
   }
+
 });
 
 /**

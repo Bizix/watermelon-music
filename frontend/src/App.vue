@@ -1,34 +1,50 @@
 <script setup>
-import { ref, provide, onMounted } from "vue";
+import { ref, provide, onMounted, watch } from "vue";
 import { supabase } from "@/lib/supabaseClient";
-
+import { fetchPlaylists } from "@/api/fetchPlaylists";
 import { useDarkMode } from "@/composables/useDarkMode";
 import AppHeader from "@/components/AppHeader.vue";
-import ChartView from "@/views/ChartView.vue";
 
 const { isDarkMode, toggleDarkMode } = useDarkMode();
-
 const user = ref(null);
+const playlists = ref([]); // ✅ Store playlists globally
 
 async function refreshUserState() {
   console.log("🔄 Refreshing user state...");
   const { data: session, error } = await supabase.auth.getSession();
-  if (error) console.error("Error fetching session:", error);
+  if (error) console.error("❌ Error fetching session:", error);
   user.value = session?.user || null;
+
+  if (user.value) {
+    await loadPlaylists(user.value.id); // ✅ Fetch playlists when user logs in
+  }
+}
+
+// ✅ Fetch user's playlists from backend
+async function loadPlaylists(userId) {
+  console.log(`📥 Fetching playlists for user: ${userId}`);
+  playlists.value = await fetchPlaylists(userId);
 }
 
 onMounted(async () => {
-    await refreshUserState(); // 🔄 Fetch session on mount
+  await refreshUserState();
 
-    supabase.auth.onAuthStateChange((_event, session) => {
-      console.log("🔄 Global Auth State Changed:", session);
-      user.value = session?.user || null; // ✅ Ensures reactivity
-    });
+  supabase.auth.onAuthStateChange(async (_event, session) => {
+    console.log("🔄 Global Auth State Changed:", session);
+    user.value = session?.user || null;
+    
+    if (user.value) {
+      await loadPlaylists(user.value.id);
+    } else {
+      playlists.value = []; // Clear playlists when user logs out
+    }
   });
-  provide("user", user);
-  provide("isDarkMode", isDarkMode);
-  provide("toggleDarkMode", toggleDarkMode);
+});
 
+provide("user", user);
+provide("playlists", playlists); // ✅ Provide playlists
+provide("isDarkMode", isDarkMode);
+provide("toggleDarkMode", toggleDarkMode);
 </script>
 
 <template>
