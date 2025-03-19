@@ -97,4 +97,4 @@ async function getRankings(genreCode) {
 }
 
 // ✅ Export services
-module.exports = { getRankings, getScrapeStatus };
+module.exports = { getRankings, getScrapeStatus, shouldScrapeGenre };

@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { getRankings, getScrapeStatus } = require("../services/rankingsService");
+const { getRankings, getScrapeStatus, shouldScrapeGenre } = require("../services/rankingsService");
 const { scrapeAndSaveGenre } = require("../services/scraperService");
 
 router.get("/scrape-status", (req, res) => {
@@ -12,13 +12,14 @@ router.get("/scrape-status", (req, res) => {
 router.get("/rankings", async (req, res) => {
     try {
         const genreCode = req.query.genre || "DM0000";
-        let rankings = await getRankings(genreCode);
+        let rankings = [];
 
-        if (!rankings.length) {
+        if (await shouldScrapeGenre(genreCode)) {
             console.log(`🔄 Scraping initiated for genre: ${genreCode}`);
             await scrapeAndSaveGenre(genreCode);
-            rankings = await getRankings(genreCode); // Fetch updated rankings after scraping
         }
+        
+        rankings = await getRankings(genreCode);
 
         res.json(rankings);
     } catch (error) {
