@@ -49,10 +49,11 @@ async function getRankings(genreCode) {
     // ✅ Fetch the updated rankings
     const rankingsResult = await client.query(
       `SELECT s.id, sr.rank, sr.movement, s.title, s.melon_song_id, a.name AS artist, s.album, s.art, 
-              s.youtube_url, s.spotify_url
+              s.youtube_url, s.spotify_url, sl.lyrics
        FROM song_rankings sr
        JOIN songs s ON sr.song_id = s.id
        JOIN artists a ON s.artist_id = a.id
+       LEFT JOIN song_lyrics sl ON sl.song_id = s.id
        WHERE sr.genre_id = (SELECT id FROM genres WHERE code = $1)
        ORDER BY sr.rank ASC`,
       [genreCode]

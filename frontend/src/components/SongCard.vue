@@ -142,7 +142,9 @@
 import { ref, watchEffect, inject, onMounted, onUnmounted } from "vue";
 import { supabase } from "@/lib/supabaseClient"; 
 import LoadingSpinner from "@/components/LoadingSpinner.vue";
-import { usePlaylist } from "@/composables/usePlaylist"; //
+import { usePlaylist } from "@/composables/usePlaylist";
+import { API_BASE_URL } from "../config";
+
 
 export default {
   props: {
@@ -203,7 +205,7 @@ export default {
       }
 
       const newPlaylist = await createPlaylist(user.value.id, newPlaylistName.value);
-      
+
       if (newPlaylist) {
         newPlaylistName.value = "";
         showNewPlaylistInput.value = false;
@@ -260,12 +262,18 @@ export default {
     async function fetchLyrics() {
       if (lyrics.value || isLoading.value) return;
 
+        // ✅ Use cached lyrics if available
+        if (props.song.lyrics) {
+          lyrics.value = props.song.lyrics;
+          return;
+        }
+
       console.log("🔄 Fetching Lyrics - Loading Starts");
       isLoading.value = true;
 
       try {
         const response = await fetch(
-          `http://localhost:5000/api/lyrics?title=${encodeURIComponent(props.song.title)}&artist=${encodeURIComponent(props.song.artist)}&songId=${props.song.melon_song_id}`
+          `${API_BASE_URL}/api/lyrics?title=${encodeURIComponent(props.song.title)}&artist=${encodeURIComponent(props.song.artist)}&songId=${props.song.melon_song_id}`
         );
 
         const data = await response.json();
@@ -284,8 +292,8 @@ export default {
 
     const toggleExpand = () => {
       isExpanded.value = !isExpanded.value;
-      if (isExpanded.value) fetchLyrics();
-    };
+      if (isExpanded.value && !lyrics.value) fetchLyrics();   
+     };
 
     const actionButtons = [
       props.song.youtube_url && { 

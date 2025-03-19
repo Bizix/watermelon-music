@@ -1,4 +1,6 @@
 import axios from "axios";
+import { API_BASE_URL } from "../config";
+
 
 interface Song {
   id: number;
@@ -9,6 +11,7 @@ interface Song {
   artist: string;
   album: string;
   art: string;
+  lyrics: string,
   youtube_url?: string;
   spotify_url?: string;
   genius_url?: string;
@@ -16,7 +19,7 @@ interface Song {
 
 export async function fetchRankings(genreCode: string): Promise<Song[]> {
   try {
-    const response = await axios.get(`http://localhost:5000/api/rankings?genre=${genreCode}`);
+    const response = await axios.get(`${API_BASE_URL}/api/rankings?genre=${genreCode}`);
 
     return response.data
       .map((song: Song) => ({

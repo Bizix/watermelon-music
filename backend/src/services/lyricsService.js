@@ -14,17 +14,6 @@ const GOOGLE_CSE_ID = process.env.GOOGLE_CSE_ID;
  * @returns {Promise<string|null>} - Lyrics or null if not found
  */
 async function getLyrics(title, artist, songId) {
-  const cacheKey = `lyrics_${title}_${artist}`;
-
-  console.log(`🟢 Checking cache for lyrics: ${title} - ${artist}`);
-
-  // ✅ Check cache first
-  const cachedLyrics = getCache(cacheKey);
-  if (cachedLyrics) {
-    console.log(`✅ Loaded lyrics from cache for: ${title} - ${artist}`);
-    return cachedLyrics;
-  }
-
   console.log(`🔎 Checking database for lyrics: ${title} - ${artist}`);
 
   const client = await pool.connect();
@@ -69,7 +58,6 @@ async function getLyrics(title, artist, songId) {
           );
 
           // ✅ Store updated lyrics in cache and return them
-          setCache(cacheKey, geniusLyrics);
           return geniusLyrics;
         } else {
           console.log(`❌ Genius still has no English lyrics. Keeping existing Melon lyrics.`);
@@ -85,9 +73,6 @@ async function getLyrics(title, artist, songId) {
           );
         }
       }
-
-      console.log(`✅ Returning lyrics from database.`);
-      setCache(cacheKey, lyrics);
       return lyrics;
     }
   } finally {
@@ -99,8 +84,7 @@ async function getLyrics(title, artist, songId) {
   const lyrics = await searchGeniusLyrics(title, artist, songId);
 
   if (lyrics) {
-    // ✅ Store in cache so we don’t scrape again soon
-    setCache(cacheKey, lyrics);
+    console.log(`✅ Returning lyrics from database.`);
   } else {
     console.log(`❌ No Genius lyrics found for a new song. Marking as non-English.`);
 
@@ -219,7 +203,11 @@ async function searchGeniusLyrics(title, artist, songId) {
     }
 
     console.log(`🔗 Found Genius lyrics page: ${geniusLink.link}`);
-    return await scrapeLyricsFromGenius(geniusLink.link, title, artist);
+
+    // Manually update link
+    // geniusLink.link = "correct link"
+
+    return await scrapeLyricsFromGenius('geniusLink.link', title, artist);
   } catch (error) {
     console.error(
       "❌ Google Search API Error:",

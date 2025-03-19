@@ -1,4 +1,5 @@
 import { ref } from "vue";
+import { API_BASE_URL } from "../config";
 
 interface Playlist {
   id: string;
@@ -19,7 +20,7 @@ export function usePlaylist() {
     errorMessage.value = "";
 
     try {
-      const response = await fetch(`/api/playlists?userId=${userId}`);
+      const response = await fetch(`/api/playlistRoutes?userId=${userId}`);
       const result: Playlist[] = await response.json();
 
       if (!response.ok) {
@@ -47,7 +48,7 @@ export function usePlaylist() {
       playlists.value.push(tempPlaylist);
 
       try {
-        const response = await fetch("/api/playlists/create", {
+        const response = await fetch(`${API_BASE_URL}/api/playlistRoutes/create`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ userId, name }),
@@ -87,7 +88,7 @@ export function usePlaylist() {
     errorMessage.value = "";
 
     try {
-      const response = await fetch("/api/playlists/add-song", {
+      const response = await fetch("/api/playlistRoutes/add-song", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ playlistId, songId }),
@@ -114,7 +115,7 @@ export function usePlaylist() {
     errorMessage.value = "";
 
     try {
-      const response = await fetch("/api/playlists/remove-song", {
+      const response = await fetch("/api/playlistRoutes/remove-song", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ playlistId, songId }),

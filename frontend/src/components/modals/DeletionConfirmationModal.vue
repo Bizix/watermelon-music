@@ -52,14 +52,16 @@
   import { inject, ref, defineEmits } from "vue";
   import { supabase } from "@/lib/supabaseClient"; 
   import { useRouter } from "vue-router";  
+  import { API_BASE_URL } from "../../config";
   import emitter from "@/lib/emitter";
+
+
 
   const isDarkMode = inject("isDarkMode");
   const isDeleting = ref(false);
   const emit = defineEmits(["close", "closeAll", "logout"]);
 
   const router = useRouter();
-  const BACKEND_URL = "http://localhost:5000"; // Adjust based on your actual backend server port
   
   async function deleteAccount() {
   if (isDeleting.value) return;
@@ -75,14 +77,14 @@
 
   try {
     // First, delete user playlists
-    // await fetch(`${BACKEND_URL}/api/delete-playlists`, {
+    // await fetch(`${API_BASE_URL}/api/delete-playlists`, {
     //   method: "POST",
     //   headers: { "Content-Type": "application/json" },
     //   body: JSON.stringify({ userId: user.id }),
     // });
 
     // Then, delete the user account
-    const response = await fetch(`${BACKEND_URL}/api/delete-user`, {
+    const response = await fetch(`${API_BASE_URL}/api/delete-user`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId: user.id }),

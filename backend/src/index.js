@@ -9,6 +9,7 @@ const rankingsRoutes = require("./routes/rankingsRoutes");
 const youtubeRoutes = require("./routes/youtubeRoutes");
 const lyricsRoutes = require("./routes/lyricsRoutes");
 const deletionRoutes = require ("./routes/deletionRoutes.js"); 
+const playlistRoutes = require("./routes/playlistRoutes");
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use("/api", rankingsRoutes);
 app.use("/api", youtubeRoutes);
 app.use("/api", deletionRoutes);
 app.use("/api/lyrics", lyricsRoutes); 
+app.use("/api/playlistRoutes", playlistRoutes);
 
 // ✅ Health Check Route
 app.get("/", (req, res) => {
