@@ -55,7 +55,6 @@ async function scrapeMelonCharts(genreCode = "DM0000") {
 
   await browser.close();
 
-  // console.log(songs.map((s) => s.rank));
   return songs;
 }
 

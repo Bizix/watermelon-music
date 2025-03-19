@@ -12,7 +12,7 @@ function getCache(key) {
         return null;
     }
 
-    console.log(`✅ Using cached data for ${key} (updated ${hoursSinceLastUpdate.toFixed(1)} hours ago)`);
+    console.log(`✅ Using cached data for ${key} (updated ${hoursSinceLastUpdate.toFixed(1)} hours ago). Skipping database call.`);
     return data;
 }
 

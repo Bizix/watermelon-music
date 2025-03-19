@@ -104,7 +104,6 @@ async function fetchFromSpotify(title, artist, album) {
           .join(", ")}`
       );
 
-      console.log(selectedTrack.id);
       return selectedTrack.id;
     }
 

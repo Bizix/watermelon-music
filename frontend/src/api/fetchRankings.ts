@@ -18,12 +18,9 @@ export async function fetchRankings(genreCode: string): Promise<Song[]> {
   try {
     const response = await axios.get(`http://localhost:5000/api/rankings?genre=${genreCode}`);
 
-    console.log("Fetched Rankings:", response.data); // 🔍 Check if `id` exists
-
     return response.data
       .map((song: Song) => ({
         ...song,
-        // id: song.id, // ✅ Ensure we're preserving the `id`
         rank: isNaN(Number(song.rank)) ? NaN : Number(song.rank),
       }))
       .filter((song: Song) => !isNaN(song.rank)) // ✅ Remove NaN-ranked songs immediately

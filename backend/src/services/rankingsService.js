@@ -1,6 +1,5 @@
 const pool = require("../config/db");
-const { getCache, setCache } = require("./cacheService");
-const { scrapeAndSaveGenre } = require("../services/scraperService");
+const { setCache } = require("./cacheService");
 
 const scrapingStatus = {}; // ✅ Track ongoing scraping jobs
 
@@ -40,34 +39,13 @@ async function shouldScrapeGenre(genreCode) {
 }
 
 /**
- * ✅ Fetch rankings from cache or database, triggering a scrape if necessary
+ * ✅ Fetch rankings from database, triggering a scrape if necessary
  * @param {string} genreCode
  * @returns {Promise<Object[]>} - Rankings data
  */
 async function getRankings(genreCode) {
-  console.log(`🟢 Checking cache for genre via rankingsService: ${genreCode}`);
-
-  // ✅ Return cached data if available
-  const cachedData = getCache(genreCode);
-  if (cachedData) {
-    console.log(`✅ Using cached data for ${genreCode} (updated recently). Skipping scrape.`);
-    return cachedData; // ✅ Prevent scraping if cache exists
-  }
-
-  console.log(`🟢 Cache expired or missing. Checking database for last update...`);
-
   const client = await pool.connect();
   try {
-    // ✅ Determine if scraping is necessary
-    const needsScraping = await shouldScrapeGenre(genreCode, client);
-
-    if (needsScraping) {
-      console.log(`🔄 Scraping forced for genre: ${genreCode}`);
-      await scrapeAndSaveGenre(genreCode);
-    } else {
-      console.log(`✅ Using existing DB data for genre: '${genreCode}'`);
-    }
-
     // ✅ Fetch the updated rankings
     const rankingsResult = await client.query(
       `SELECT s.id, sr.rank, sr.movement, s.title, s.melon_song_id, a.name AS artist, s.album, s.art, 
@@ -81,6 +59,7 @@ async function getRankings(genreCode) {
     );
 
     const rankings = rankingsResult.rows;
+    console.log(`✅ Using database data for ${genreCode}`)
 
     // ✅ Store results in cache
     setCache(genreCode, rankings);

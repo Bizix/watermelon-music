@@ -1,6 +1,5 @@
 const axios = require("axios");
 const pool = require("../config/db");
-const { getCache, setCache } = require("../services/cacheService");
 
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 const YOUTUBE_SEARCH_URL = "https://www.googleapis.com/youtube/v3/search";
@@ -88,9 +87,10 @@ async function fetchYouTubeUrl(title, artist) {
       const { youtube_url, youtube_last_updated } = result.rows[0];
 
       // ✅ If URL is fresh, return it
-      if (youtube_url && youtube_last_updated && Date.now() - new Date(youtube_last_updated).getTime() < YOUTUBE_REFRESH_MS) {
+      if (youtube_url
+        //  && youtube_last_updated && Date.now() - new Date(youtube_last_updated).getTime() < YOUTUBE_REFRESH_MS
+        ) {
         console.log(`✅ Using existing YouTube URL for ${title} - ${artist}`);
-        setCache(cacheKey, youtube_url);
         return youtube_url;
       }
     }
@@ -105,10 +105,6 @@ async function fetchYouTubeUrl(title, artist) {
        WHERE title = $2 AND artist_id = (SELECT id FROM artists WHERE name = $3 LIMIT 1)`,
       [youtubeUrl, title, artist]
     );
-
-    // ✅ Store in cache
-    setCache(cacheKey, youtubeUrl);
-    console.log(`✅ YouTube URL saved: ${youtubeUrl}`);
 
     return youtubeUrl;
   } catch (error) {
