@@ -81,11 +81,26 @@
 
           <!-- ✅ New Playlist Input -->
           <div v-if="showNewPlaylistInput">
-            <input v-model="newPlaylistName" type="text" placeholder="Playlist name..."
-              class="w-full px-2 py-1 text-sm border-none outline-none focus:ring-0 focus:border-transparent">
-            <button @click="createPlaylist" class="w-full px-2 py-1 text-sm font-medium bg-green-500 cursor-pointer text-white">
-              Create
-            </button>
+            <input
+              id="new-playlist-name"
+              name="newPlaylistName"
+              v-model="newPlaylistName" 
+              type="text" 
+              placeholder="Playlist name..."
+              autocomplete="off"
+              class="w-full px-2 py-1 text-sm border-none outline-none focus:ring-0 focus:border-transparent"
+              >
+              <button 
+                @click="handleCreatePlaylist"
+                :disabled="!newPlaylistName.trim()"
+                class="w-full px-2 py-1 text-sm font-medium cursor-pointer text-white transition-colors"
+                :class="{
+                  'bg-green-500 hover:bg-green-600': newPlaylistName.trim(), // ✅ Enabled state
+                  'bg-gray-300 cursor-not-allowed': !newPlaylistName.trim() // ✅ Disabled state
+                }"
+            >
+                Create
+              </button>
           </div>
 
           <!-- ✅ Existing Playlists -->
@@ -164,7 +179,6 @@ export default {
     
     onMounted(() => {
       document.addEventListener("click", closeMenuOnOutsideClick);
-      // console.log(props.song.id);
     });
 
     onUnmounted(() => {
@@ -183,13 +197,17 @@ export default {
 
     // ✅ Handle Creating a New Playlist
     async function handleCreatePlaylist() {
-      if (!newPlaylistName.value.trim()) return; // Prevent empty input
-      
+      if (!newPlaylistName.value || !newPlaylistName.value.trim()) {
+        console.error("🚨 Playlist name is empty!");
+        return;
+      }
+
       const newPlaylist = await createPlaylist(user.value.id, newPlaylistName.value);
+      
       if (newPlaylist) {
         newPlaylistName.value = "";
         showNewPlaylistInput.value = false;
-      }
+      }      
     }
 
     // ✅ Handle Adding a Song
@@ -308,7 +326,8 @@ export default {
       playlistMenuRef,
       closeMenuOnOutsideClick,
       isDarkMode,
-      toggleNewPlaylistInput
+      toggleNewPlaylistInput,
+      handleCreatePlaylist
     };
   }
 };

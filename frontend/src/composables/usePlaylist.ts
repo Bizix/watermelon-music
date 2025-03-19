@@ -35,35 +35,49 @@ export function usePlaylist() {
     }
   }
 
-  // ✅ Create a new playlist
-  async function createPlaylist(userId: string, name: string): Promise<Playlist | void> {
-    if (!userId || !name.trim()) return;
+    // ✅ Create a new playlist
+    async function createPlaylist(userId: string, name: string): Promise<Playlist | void> {
+      if (!userId || !name.trim()) return;
 
-    isLoading.value = true;
-    errorMessage.value = "";
+      isLoading.value = true;
+      errorMessage.value = "";
 
-    try {
-      const response = await fetch("/api/playlists/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, name }),
-      });
+      // ✅ Optimistically add playlist to UI before API call
+      const tempPlaylist: Playlist = { id: "temp-" + Date.now(), name, userId, songs: [] };
+      playlists.value.push(tempPlaylist);
 
-      const result: Playlist = await response.json();
+      try {
+        const response = await fetch("/api/playlists/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, name }),
+        });
 
-      if (!response.ok) {
-        errorMessage.value = (result as any).error || "Failed to create playlist.";
-        return;
+        const result: Playlist = await response.json();
+
+        if (!response.ok || (result as { error?: string }).error) {
+          errorMessage.value = (result as { error?: string }).error || "Failed to create playlist."; // ❌ Rollback UI if API fails
+          playlists.value = playlists.value.filter(p => p.id !== tempPlaylist.id);
+          return;
+        }
+
+        // ✅ Replace tempPlaylist with actual one from API
+        playlists.value = playlists.value.map(p => 
+          p.id === tempPlaylist.id ? result : p
+        );
+
+        return result;
+      } catch (error) {
+        console.error("❌ Error creating playlist:", error);
+        errorMessage.value = "An error occurred while creating the playlist.";
+
+        // ❌ Rollback UI if error occurs
+        playlists.value = playlists.value.filter(p => p.id !== tempPlaylist.id);
+      } finally {
+        isLoading.value = false;
       }
-
-      playlists.value.push(result);
-      return result;
-    } catch (error) {
-      errorMessage.value = "An error occurred while creating the playlist.";
-    } finally {
-      isLoading.value = false;
     }
-  }
+
 
   // ✅ Add a song to a playlist
   async function addToPlaylist(playlistId: string, songId: string): Promise<boolean | void> {
