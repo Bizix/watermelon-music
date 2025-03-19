@@ -157,7 +157,6 @@
     emitter.on("accountDeleted", handleAccountDeletion);
 
     authUnsubscribe = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log("🔄 Auth state changed:", session);
       user.value = session?.user || null; // ✅ Update user state
     });
   });

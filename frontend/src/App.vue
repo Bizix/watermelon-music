@@ -15,7 +15,6 @@ async function refreshUserState() {
   const { data: session, error } = await supabase.auth.getSession();
   if (error) console.error("Error fetching session:", error);
   user.value = session?.user || null;
-  console.log("✅ Global User State Updated:", user.value);
 }
 
 onMounted(async () => {

@@ -14,7 +14,7 @@
 
     <!-- ✅ Song List -->
     <div v-if="!isLoading" ref="songList" class="overflow-y-auto flex-grow w-full scrollbar-hidden" @scroll="checkScroll">
-      <SongCard v-for="song in filteredRankings" :key="song.id" :song="song" />
+      <SongCard v-for="song in filteredRankings" :song="song" />
     </div>
 
     <!-- ✅ Scroll Indicator -->

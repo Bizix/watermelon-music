@@ -174,17 +174,24 @@ async function saveToDatabase(genreCode = "DM0000") {
     // ✅ Ensure all songs exist with melon_song_id
     const songIds = {};
     for (const song of scrapedSongs) {
-      const songRes = await client.query(
-        `INSERT INTO songs (title, artist_id, album, art, melon_song_id, youtube_url, youtube_last_updated, spotify_url, scraped_at) 
-         VALUES ($1, $2, $3, $4, NULLIF($5, 0), NULL, NULL, NULL, NOW()) 
-         ON CONFLICT (title, artist_id) 
-         DO UPDATE SET album = EXCLUDED.album, 
-                       art = EXCLUDED.art, 
-                       melon_song_id = COALESCE(songs.melon_song_id, NULLIF(EXCLUDED.melon_song_id, 0)), 
-                       scraped_at = NOW()
-         RETURNING id`,
-        [song.title, artistIds[song.artist], song.album, song.art, song.key]
-      );
+      // console.log(`Attempting to insert song:`, song);
+      let songRes
+      try{
+         songRes = await client.query(
+          `INSERT INTO songs (title, artist_id, album, art, melon_song_id, youtube_url, youtube_last_updated, spotify_url, scraped_at) 
+           VALUES ($1, $2, $3, $4, NULLIF($5, 0), NULL, NULL, NULL, NOW()) 
+           ON CONFLICT (title, artist_id) 
+           DO UPDATE SET album = EXCLUDED.album, 
+                         art = EXCLUDED.art, 
+                         melon_song_id = COALESCE(songs.melon_song_id, NULLIF(EXCLUDED.melon_song_id, 0)), 
+                         scraped_at = NOW()
+           RETURNING id `,
+          [song.title, artistIds[song.artist], song.album, song.art, song.key]
+        );
+    } catch (error) {
+      console.error(`❌ Error saving song:`, song);
+      console.error(error);  // Log the exact error
+    }
 
       const songId = songRes.rows[0].id;
       songIds[`${song.title}-${song.artist}`] = songId;

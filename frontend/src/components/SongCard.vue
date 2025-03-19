@@ -1,6 +1,5 @@
 <template>
-  <div class="song-card w-full flex flex-col p-4 shadow-lg border-t transition-colors" :data-song-id="song.melon_song_id">
-      
+  <div class="song-card w-full flex flex-col p-4 shadow-lg border-t transition-colors"  :data-id="song.id" :data-song-id="song.melon_song_id">
     <div class="flex items-center gap-4 w-full">
       <!-- ✅ Rank with Movement -->
       <div class="flex items-center min-w-[50px] justify-center gap-1">
@@ -128,7 +127,7 @@
 import { ref, watchEffect, inject, onMounted, onUnmounted } from "vue";
 import { supabase } from "@/lib/supabaseClient"; 
 import LoadingSpinner from "@/components/LoadingSpinner.vue";
-
+import { usePlaylist } from "@/composables/usePlaylist"; //
 
 export default {
   props: {
@@ -147,10 +146,8 @@ export default {
     const isDarkMode = inject("isDarkMode");
 
 
-
-    // TODO START
+    const { playlists, fetchPlaylists, createPlaylist, addToPlaylist, removeFromPlaylist } = usePlaylist();
     const user = inject("user");
-    const playlists = ref([]);
     const showPlaylistMenu = ref(false);
     const showNewPlaylistInput = ref(false);
     const newPlaylistName = ref("");
@@ -167,6 +164,7 @@ export default {
     
     onMounted(() => {
       document.addEventListener("click", closeMenuOnOutsideClick);
+      // console.log(props.song.id);
     });
 
     onUnmounted(() => {
@@ -183,31 +181,28 @@ export default {
   }
     fetchUser();
 
-    async function fetchPlaylists() {
-      if (!user.value) return;
-      const { data, error } = await supabase
-        .from("playlists")
-        .select("id, name, songs")
-        .eq("user_id", user.value.id);
-
-      if (!error) playlists.value = data || [];
+    // ✅ Handle Creating a New Playlist
+    async function handleCreatePlaylist() {
+      if (!newPlaylistName.value.trim()) return; // Prevent empty input
+      
+      const newPlaylist = await createPlaylist(user.value.id, newPlaylistName.value);
+      if (newPlaylist) {
+        newPlaylistName.value = "";
+        showNewPlaylistInput.value = false;
+      }
     }
 
-  async function createPlaylist() {
-    if (!user.value || !newPlaylistName.value.trim()) return;
-
-    const { data, error } = await supabase
-      .from("playlists")
-      .insert([{ user_id: user.value.id, name: newPlaylistName.value.trim(), songs: [] }])
-      .select()
-      .single();
-
-    if (!error && data) {
-      playlists.value.push(data);
-      newPlaylistName.value = "";
-      showNewPlaylistInput.value = false;
+    // ✅ Handle Adding a Song
+    async function handleAddSong(playlistId) {
+      const success = await addToPlaylist(playlistId, props.song.id);
+      if (success) alert(`Song added to playlist!`);
     }
-  }
+
+    // ✅ Handle Removing a Song
+    async function handleRemoveSong(playlistId) {
+      const success = await removeFromPlaylist(playlistId, props.song.id);
+      if (success) alert(`Song removed from playlist!`);
+    }
 
   async function toggleSongInPlaylist(playlistId) {
     const playlist = playlists.value.find(p => p.id === playlistId);
@@ -229,11 +224,11 @@ export default {
 
   // ✅ Toggle "Add to new playlist" input
   function toggleNewPlaylistInput() {
-  if (!showPlaylistMenu.value) {
-    showPlaylistMenu.value = true; // ✅ Ensure the dropdown is open before toggling input
+    if (!showPlaylistMenu.value) {
+      showPlaylistMenu.value = true; // ✅ Ensure the dropdown is open before toggling input
+    }
+    showNewPlaylistInput.value = !showNewPlaylistInput.value; // ✅ Toggle input
   }
-  showNewPlaylistInput.value = !showNewPlaylistInput.value; // ✅ Toggle input
-}
 
 
     function togglePlaylistMenu(event) {
@@ -243,8 +238,6 @@ export default {
       }
       showPlaylistMenu.value = !showPlaylistMenu.value;
     }
-
-  // TODO END
 
     async function fetchLyrics() {
       if (lyrics.value || isLoading.value) return;
@@ -277,10 +270,24 @@ export default {
     };
 
     const actionButtons = [
-      { url: `https://www.youtube.com/watch?v=${props.song.youtube_url}`, icon: "pi pi-youtube", color: "text-red-500 hover:text-red-600" },
-      { url: props.song.apple_music_url, icon: "pi pi-apple", color: "text-gray-300 hover:text-gray-400" },
-      { url: `https://open.spotify.com/track/${props.song.spotify_url}`, icon: "fab fa-spotify", color: "text-green-400 hover:text-green-500" }
-    ];
+      props.song.youtube_url && { 
+        url: `https://www.youtube.com/watch?v=${props.song.youtube_url}`, 
+        icon: "pi pi-youtube", 
+        color: "text-red-500 hover:text-red-600" 
+      },
+      props.song.apple_music_url && { 
+        url: props.song.apple_music_url, 
+        icon: "pi pi-apple", 
+        color: "text-gray-300 hover:text-gray-400" 
+      },
+      props.song.spotify_url && { 
+        url: `https://open.spotify.com/track/${props.song.spotify_url}`, 
+        icon: "fab fa-spotify", 
+        color: "text-green-400 hover:text-green-500" 
+      }
+    ].filter(Boolean); // Removes any null/false values from the array
+
+
 
     return {
       isExpanded,
