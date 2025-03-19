@@ -12,10 +12,11 @@ function getScrapeStatus(genreCode) {
 /**
  * ✅ Determines if scraping is needed based on the last update timestamp and missing YouTube data.
  * @param {string} genreCode
- * @param {object} client - Database client
  * @returns {Promise<boolean>} - Returns true if scraping is needed
  */
-async function shouldScrapeGenre(genreCode, client) {
+async function shouldScrapeGenre(genreCode) {
+  const client = await pool.connect();
+
   try {
     const result = await client.query(
       `SELECT g.last_updated 
@@ -49,15 +50,11 @@ async function getRankings(genreCode) {
   // ✅ Return cached data if available
   const cachedData = getCache(genreCode);
   if (cachedData) {
-    console.log(
-      `✅ Using cached data for ${genreCode} (updated recently). Skipping scrape.`
-    );
+    console.log(`✅ Using cached data for ${genreCode} (updated recently). Skipping scrape.`);
     return cachedData; // ✅ Prevent scraping if cache exists
   }
 
-  console.log(
-    `🟢 Cache expired or missing. Checking database for last update...`
-  );
+  console.log(`🟢 Cache expired or missing. Checking database for last update...`);
 
   const client = await pool.connect();
   try {
