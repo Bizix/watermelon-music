@@ -487,6 +487,9 @@
   .border-red-400 {
     border-color: var(--color-red-400);
   }
+  .bg-\[rgba\(255\,255\,255\,0\.6\)\] {
+    background-color: rgba(255,255,255,0.6);
+  }
   .bg-\[var\(--p-primary-400\)\] {
     background-color: var(--p-primary-400);
   }
