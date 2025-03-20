@@ -110,11 +110,11 @@
                         @click="toggleSongInPlaylist(playlist.id)"
                         :class="[
                           'text-sm px-3 py-2 rounded',
-                          playlist.songs.includes(song.id)
+                          (playlist.songs && playlist.songs.includes(song.id))
                             ? 'bg-red-700 hover:bg-red-800'
                             : 'text-white bg-[var(--p-primary-500)] hover:bg-[var(--p-primary-400)]'
                         ]">
-                        {{ playlist.songs.includes(song.id) ? "−" : "+" }}
+                        {{ (playlist.songs && playlist.songs.includes(song.id)) ? "−" : "+" }}
                       </button>
                     </div>
                  </div>
@@ -212,7 +212,8 @@ export default {
       if (newPlaylist) {
         newPlaylistName.value = "";
         showNewPlaylistInput.value = false;
-        // playlists.value.push(newPlaylist);
+
+        playlists.value.unshift(newPlaylist);  
       }      
     }
 
