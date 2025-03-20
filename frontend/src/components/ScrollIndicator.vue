@@ -21,8 +21,8 @@ export default {
     // ✅ Apply radial gradient using inline styles (Vue binding)
     const gradientStyle = computed(() => ({
       background: isDarkMode.value
-        ? "radial-gradient(ellipse at center, rgba(40,40,40,0.7) 0%, transparent 80%)"
-        : "radial-gradient(ellipse at center, rgba(220,220,220,0.4) 0%, transparent 80%)",
+        ? "radial-gradient(ellipse at center bottom, rgba(40,40,40,0.7) 0%, transparent 80%)"
+        : "radial-gradient(ellipse at center bottom, rgba(220,220,220,0.4) 0%, transparent 80%)",
     }));
 
     return {

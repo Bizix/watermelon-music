@@ -59,11 +59,15 @@
               +
               </button>
               <!-- ✅ Playlist Dropdown -->
-              <div ref="playlistMenuRef" v-if="showPlaylistMenu" class="absolute right-0 mt-2 w-48 shadow-lg rounded-lg z-50"
+              <div ref="playlistMenuRef" 
+                v-if="showPlaylistMenu" 
+                class="absolute right-0 mt-2 w-48 shadow-lg rounded-lg z-50 overflow-y-auto max-h-64 scrollbar-hidden"
                  :class="{
                  'bg-[var(--p-surface-50)] text-black': !isDarkMode,
                  'bg-[var(--p-surface-100)] text-white': isDarkMode
                  }">
+                   <!-- ✅ Scroll Indicator -->
+                  <ScrollIndicator v-if="!isLoading" :showScrollIndicator="showScrollIndicator" />
                  <button @click="toggleNewPlaylistInput" class="w-full text-center px-3 py-2 text-xs font-medium hover:bg-gray-100 rounded-t-lg"
                     :class="{
                     'hover:bg-gray-300': !isDarkMode,
@@ -103,9 +107,9 @@
                     <div 
                       v-for="(playlist, index) in playlists" 
                       :data-playlist-id="playlist.id" 
-                      class="text-xs font-medium flex items-center justify-between py-1 pl-2 border-t border-gray-400"             
+                      class="text-xs font-medium flex items-center justify-between px-1 py-1 pl-2 border-t border-gray-400"             
                        >
-                       <span class="text-sm px-2">{{ playlist.name }}</span>
+                       <span class="text-sm px-">{{ playlist.name }}</span>
                        <button 
                         @click="playlist.songs.includes(song.id) ? handleRemoveSong(playlist.id) : handleAddSong(playlist.id)"
                         :class="[
@@ -136,6 +140,7 @@
         </div>
      </transition>
   </div>
+
 </template>
 
 <script>
@@ -143,6 +148,8 @@ import { ref, watchEffect, inject, onMounted, onUnmounted } from "vue";
 import { supabase } from "@/lib/supabaseClient"; 
 import LoadingSpinner from "@/components/LoadingSpinner.vue";
 import { usePlaylist } from "@/composables/usePlaylist";
+import ScrollIndicator from "@/components/ScrollIndicator.vue";
+import useScrollIndicator from "@/composables/useScrollIndicator.ts";
 import { API_BASE_URL } from "../config";
 
 
@@ -154,7 +161,8 @@ export default {
     }
   },
   components: {
-    LoadingSpinner
+    LoadingSpinner,
+    ScrollIndicator
   },
   setup(props) {
     const isExpanded = ref(false);
@@ -162,6 +170,7 @@ export default {
     const isLoading = ref(false);
     const isDarkMode = inject("isDarkMode");
     const playlists = inject("playlists");
+    const playlistDropdownRef = ref(null);
 
     const {  fetchPlaylists, createPlaylist, addToPlaylist, removeFromPlaylist } = usePlaylist();
     const user = inject("user");
@@ -169,8 +178,8 @@ export default {
     const showNewPlaylistInput = ref(false);
     const newPlaylistName = ref("");
     const playlistMenuRef = ref(null);
+    const { showScrollIndicator, checkScroll } = useScrollIndicator(playlistMenuRef);
 
-        // console.log("🎵 User's Playlists:", playlists);
 
   
     function closeMenuOnOutsideClick(event) {
@@ -184,10 +193,20 @@ export default {
     
     onMounted(() => {
       document.addEventListener("click", closeMenuOnOutsideClick);
+
+        // ✅ Attach scroll event to playlist dropdown
+        if (playlistMenuRef.value) {
+          playlistMenuRef.value.addEventListener("scroll", checkScroll);
+        }
     });
 
     onUnmounted(() => {
       document.removeEventListener("click", closeMenuOnOutsideClick);
+
+        // ✅ Clean up scroll listener
+        if (playlistMenuRef.value) {
+          playlistMenuRef.value.removeEventListener("scroll", checkScroll);
+        }
     });
 
     // ✅ Get logged-in user state
@@ -369,7 +388,8 @@ export default {
       toggleNewPlaylistInput,
       handleCreatePlaylist,
       handleRemoveSong,
-      handleAddSong
+      handleAddSong,
+      showScrollIndicator
     };
   }
 };

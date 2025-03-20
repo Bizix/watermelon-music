@@ -13,7 +13,7 @@
     </div>
 
     <!-- ✅ Song List -->
-    <div v-if="!isLoading" ref="songList" class="overflow-y-auto flex-grow w-full scrollbar-hidden" @scroll="checkScroll">
+    <div v-if="!isLoading" ref="songListRef" class="overflow-y-auto flex-grow w-full scrollbar-hidden" @scroll="checkScroll">
       <SongCard v-for="song in filteredRankings" :song="song" />
     </div>
 
@@ -59,7 +59,8 @@ export default {
     const selectedGenre = ref("DM0000");
     const rankings = ref([]);
     const isLoading = ref(true);
-    const { showScrollIndicator, checkScroll, songList } = useScrollIndicator();
+    const songListRef = ref(null);
+    const { showScrollIndicator, checkScroll } = useScrollIndicator(songListRef);
 
     // ✅ Inject global dark mode state & toggle function
     const isDarkMode = inject("isDarkMode");
@@ -104,7 +105,7 @@ export default {
       handleGenreChange,
       filteredRankings,
       genreMap,
-      songList,
+      songListRef,
       isDarkMode,
       toggleDarkMode,
     };

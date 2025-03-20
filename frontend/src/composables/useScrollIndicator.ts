@@ -1,27 +1,32 @@
 import { ref, onMounted, onUnmounted } from "vue";
 
-export default function useScrollIndicator() {
+export default function useScrollIndicator(scrollElementRef: any) {
   const showScrollIndicator = ref(true);
-  const songList = ref<HTMLElement | null>(null);
 
   function checkScroll() {
-    if (songList.value) {
-      const isAtBottom = Math.abs(songList.value.scrollTop + songList.value.clientHeight - songList.value.scrollHeight) < 2;
+    if (scrollElementRef.value) {
+      const isAtBottom = Math.abs(
+        scrollElementRef.value.scrollTop +
+          scrollElementRef.value.clientHeight -
+          scrollElementRef.value.scrollHeight
+      ) < 2;
       showScrollIndicator.value = !isAtBottom;
     }
   }
 
   onMounted(() => {
-    if (songList.value) {
-      songList.value.addEventListener("scroll", checkScroll);
+    if (scrollElementRef.value) {
+      scrollElementRef.value.addEventListener("scroll", checkScroll);
+      checkScroll(); // ✅ Initial check
     }
   });
 
   onUnmounted(() => {
-    if (songList.value) {
-      songList.value.removeEventListener("scroll", checkScroll);
+    if (scrollElementRef.value) {
+      scrollElementRef.value.removeEventListener("scroll", checkScroll);
     }
   });
 
-  return { showScrollIndicator, checkScroll, songList };
+  return { showScrollIndicator, checkScroll };
 }
+
