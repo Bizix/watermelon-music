@@ -90,11 +90,20 @@ router.post("/add-song", async (req, res) => {
  * ✅ Remove a Song from a Playlist
  */
 router.post("/remove-song", async (req, res) => {
+
   try {
     const { playlistId, songId } = req.body;
+
+    if (!playlistId || !songId) {
+      console.error("❌ Missing parameters:", { playlistId, songId });
+      return res.status(400).json({ error: "Missing playlistId or songId" });
+    }
+    
     const response = await removeSongFromPlaylist(playlistId, songId);
+    
     res.json(response);
   } catch (error) {
+    console.error("❌ Error removing song:", error.message);
     res.status(400).json({ error: error.message });
   }
 });

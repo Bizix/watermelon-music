@@ -78,6 +78,7 @@ async function createPlaylist(userId, name) {
       .single();
 
     if (error) {
+      console.error("❌ Supabase Insert Error:", error);
       throw new Error(error.message);
     }
 
@@ -112,17 +113,25 @@ async function addSongToPlaylist(playlistId, songId) {
  * ✅ Remove a song from a playlist
  */
 async function removeSongFromPlaylist(playlistId, songId) {
-  const { error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from("playlist_songs")
     .delete()
     .eq("playlist_id", playlistId)
-    .eq("song_id", songId);
+    .eq("song_id", songId)
+    .select();
 
   if (error) {
+    console.error("❌ Supabase Delete Error:", error);
     throw new Error(error.message);
   }
 
-  return { message: "Song removed successfully." };
+  if (data.length === 0) {
+    console.error("❌ Supabase Insert Error:", error);
+    return { error };
+  } 
+
+  console.log("✅ Song removed successfully:", data);
+  return { data };
 }
 
 /**

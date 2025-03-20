@@ -39,31 +39,4 @@ router.post("/delete-user", async (req, res) => {
     }
   });
 
-// ✅ Delete User Playlists
-router.post("/delete-playlists", async (req, res) => {
-  const { userId } = req.body;
-
-  if (!userId) {
-    return res.status(400).json({ error: "User ID is required" });
-  }
-
-  try {
-    // Delete playlists where `user_id` matches
-    const { error } = await supabase
-      .from("playlists") // Change this to your actual table name
-      .delete()
-      .eq("user_id", userId);
-
-    if (error) {
-      throw error;
-    }
-
-    res.status(200).json({ message: "Playlists deleted successfully" });
-  } catch (error) {
-    console.error("Error deleting playlists:", error.message);
-    res.status(500).json({ error: "Failed to delete playlists" });
-  }
-});
-
-
 module.exports = router;

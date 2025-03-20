@@ -245,8 +245,15 @@ export default {
 
     // ✅ Handle Removing a Song
     async function handleRemoveSong(playlistId) {
-      console.log('remove song trigger')
       const success = await removeFromPlaylist(playlistId, props.song.id);
+
+      if (success) {
+        // ✅ Update the UI immediately
+        const playlist = playlists.value.find(p => p.id === playlistId);
+        if (playlist) {
+          playlist.songs = playlist.songs.filter(songId => songId !== props.song.id);
+        }
+      }
     }
 
   async function toggleSongInPlaylist(playlistId) {
