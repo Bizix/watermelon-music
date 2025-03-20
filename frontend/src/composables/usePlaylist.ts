@@ -60,14 +60,14 @@ export function usePlaylist() {
   }
 
   // ✅ Add a song to a playlist
-  async function addToPlaylist(playlistId: string, songId: string): Promise<boolean | void> {
+  async function addToPlaylist(playlistId: string, songId: string): Promise<boolean | void> {    
     if (!playlistId || !songId) return;
 
     isLoading.value = true;
     errorMessage.value = "";
 
     try {
-      const response = await fetch("/api/playlistRoutes/add-song", {
+      const response = await fetch(`${API_BASE_URL}/api/playlistRoutes/add-song`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ playlistId, songId }),
@@ -94,7 +94,7 @@ export function usePlaylist() {
     errorMessage.value = "";
 
     try {
-      const response = await fetch("/api/playlistRoutes/remove-song", {
+      const response = await fetch(`${API_BASE_URL}/api/playlistRoutes/remove-song`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ playlistId, songId }),

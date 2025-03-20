@@ -8,25 +8,37 @@ interface Playlist {
   userId: string;
   name: string;
   created_at: string;
-  songs: string[]; // ✅ Ensure `songs` is an array
+  songs: string[];
 }
 
 export async function fetchPlaylists(userId: string): Promise<Playlist[]> {
   try {
     const response = await axios.get<Playlist[]>(`${API_BASE_URL}/api/playlistRoutes`, {
-      params: { userId }, // ✅ Pass userId as a query parameter
+      params: { userId },
     });
 
     // ✅ Ensure `songs` always exists as an array
-    const playlists = response.data.map((playlist: Playlist) => ({
-      ...playlist,
-      songs: Array.isArray(playlist.songs) ? playlist.songs : [], // ✅ Prevents undefined errors
-    }));
+    const playlists = await Promise.all(
+      response.data.map(async (playlist) => {
+        try {
+          const songsResponse = await axios.get<string[]>(`${API_BASE_URL}/api/playlistRoutes/songs`, {
+            params: { playlistId: playlist.id },
+          });
 
-    console.log("✅ Playlists fetched:", playlists);
+          return {
+            ...playlist,
+            songs: songsResponse.data || [], // ✅ Ensure `songs` is always an array
+          };
+        } catch (error) {
+          console.error(`❌ Error fetching songs for playlist ${playlist.id}:`, error);
+          return { ...playlist, songs: [] }; // ✅ Fallback to an empty array
+        }
+      })
+    );
+    
     return playlists;
   } catch (error) {
     console.error("❌ Error fetching playlists:", error);
-    return []; // Return an empty array if an error occurs
+    return [];
   }
 }

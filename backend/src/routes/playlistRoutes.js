@@ -1,5 +1,6 @@
 const express = require("express");
 const {  getUserPlaylists,
+  getPlaylistSongs,
   createPlaylist,
   addSongToPlaylist,
   removeSongFromPlaylist,
@@ -28,6 +29,26 @@ router.get("/", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+/**
+ * ✅ Get all songs for a user's playlist
+ */
+router.get("/songs", async (req, res) => {
+  const { playlistId } = req.query;
+
+  if (!playlistId) {
+    return res.status(400).json({ error: "Missing playlistId" });
+  }
+
+  try {
+    const songs = await getPlaylistSongs(playlistId);
+    res.json(songs);
+  } catch (error) {
+    console.error("❌ Error fetching playlist songs:", error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 
 /**
  * ✅ Create a Playlist

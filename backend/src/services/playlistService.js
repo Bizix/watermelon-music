@@ -33,6 +33,25 @@ async function getUserPlaylists(userId) {
 }
 
 /**
+ * ✅ Fetch all songs for a given playlist
+ */
+async function getPlaylistSongs(playlistId) {
+  console.log(`📥 Fetching songs for playlist ${playlistId}`);
+
+  const { data, error } = await supabaseAdmin
+    .from("playlist_songs")
+    .select("song_id")
+    .eq("playlist_id", playlistId);
+
+  if (error) {
+    console.error("❌ Supabase Fetch Error:", error.message);
+    throw new Error(error.message);
+  }
+
+  return data.map(entry => entry.song_id); // ✅ Return only song IDs
+}
+
+/**
  * ✅ Create a new playlist
  */
 async function createPlaylist(userId, name) {
@@ -75,15 +94,18 @@ async function createPlaylist(userId, name) {
  * ✅ Add a song to a playlist
  */
 async function addSongToPlaylist(playlistId, songId) {
-  const { error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from("playlist_songs")
-    .insert([{ playlist_id: playlistId, song_id: songId }]);
+    .insert([{ playlist_id: playlistId, song_id: songId }])
+    .select("*");
 
   if (error) {
-    throw new Error(error.message);
+    console.error("❌ Supabase Insert Error:", error);
+    return { error };
   }
 
-  return { message: "Song added successfully." };
+  console.log("✅ Song added successfully:", data);
+  return { data };
 }
 
 /**
@@ -138,6 +160,7 @@ async function deletePlaylist(playlistId) {
 // ✅ Export service functions
 module.exports = {
   getUserPlaylists,
+  getPlaylistSongs,
   createPlaylist,
   addSongToPlaylist,
   removeSongFromPlaylist,

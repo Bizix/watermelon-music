@@ -107,14 +107,14 @@
                        >
                        <span class="text-sm px-2">{{ playlist.name }}</span>
                        <button 
-                        @click="toggleSongInPlaylist(playlist.id)"
+                        @click="playlist.songs.includes(song.id) ? handleRemoveSong(playlist.id) : handleAddSong(playlist.id)"
                         :class="[
                           'text-sm px-3 py-2 rounded',
-                          (playlist.songs && playlist.songs.includes(song.id))
+                          playlist.songs.includes(song.id)
                             ? 'bg-red-700 hover:bg-red-800'
                             : 'text-white bg-[var(--p-primary-500)] hover:bg-[var(--p-primary-400)]'
                         ]">
-                        {{ (playlist.songs && playlist.songs.includes(song.id)) ? "−" : "+" }}
+                        {{ playlist.songs.includes(song.id) ? "−" : "+" }}
                       </button>
                     </div>
                  </div>
@@ -213,20 +213,40 @@ export default {
         newPlaylistName.value = "";
         showNewPlaylistInput.value = false;
 
-        playlists.value.unshift(newPlaylist);  
-      }      
+        // ✅ Ensure `songs` is an array before modifying it
+        newPlaylist.songs = Array.isArray(newPlaylist.songs) ? newPlaylist.songs : [];
+
+        // ✅ Immediately add the selected song (using `song.id`) to the new playlist
+        const success = await addToPlaylist(newPlaylist.id, props.song.id);
+
+        if (success) {
+          console.log(`🎵 Added song ${props.song.id} to playlist ${newPlaylist.id}`);
+          newPlaylist.songs.push(props.song.id); // ✅ Update UI
+        }
+
+        // ✅ Add the new playlist to the UI at the top
+        playlists.value.unshift(newPlaylist);
+      }
     }
+
 
     // ✅ Handle Adding a Song
     async function handleAddSong(playlistId) {
       const success = await addToPlaylist(playlistId, props.song.id);
-      if (success) alert(`Song added to playlist!`);
+      
+      if (success) {
+        // ✅ Update the UI immediately
+        const playlist = playlists.value.find(p => p.id === playlistId);
+        if (playlist) {
+          playlist.songs.push(props.song.id);
+        }
+      }
     }
 
     // ✅ Handle Removing a Song
     async function handleRemoveSong(playlistId) {
+      console.log('remove song trigger')
       const success = await removeFromPlaylist(playlistId, props.song.id);
-      if (success) alert(`Song removed from playlist!`);
     }
 
   async function toggleSongInPlaylist(playlistId) {
@@ -340,7 +360,9 @@ export default {
       closeMenuOnOutsideClick,
       isDarkMode,
       toggleNewPlaylistInput,
-      handleCreatePlaylist
+      handleCreatePlaylist,
+      handleRemoveSong,
+      handleAddSong
     };
   }
 };
