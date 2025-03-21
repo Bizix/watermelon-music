@@ -7,12 +7,7 @@
         <span class="font-bold text-lg text-primary-500 pr-1">
           {{ song.rank }}
         </span>
-        <span class="flex items-end text-sm gap-0.5" :class="{
-          'text-green-500 font-bold uppercase text-xs': song.movement === 'NEW',
-          'text-green-500': song.movement.includes('↑'),
-          'text-red-500': song.movement.includes('↓'),
-          'text-gray-500': song.movement === '-'
-        }">
+        <span class="flex items-end text-sm gap-0.5" :class="movementClasses">
           <span v-if="song.movement === 'NEW'">
             NEW
           </span>
@@ -43,8 +38,7 @@
       <!-- ✅ Action Buttons -->
       <div class="flex items-center gap-3">
         <template v-for="(button, index) in actionButtons" :key="index">
-          <a v-if="button.url" :href="button.url" target="_blank" class="text-xl"
-             :class="button.color">
+          <a v-if="button.url" :href="button.url" target="_blank" class="text-xl" :class="button.color">
             <i :class="button.icon"></i>
           </a>
         </template>
@@ -226,6 +220,34 @@ export default {
       }, 100);
     }
 
+    const movementClasses = computed(() => {
+      if (props.song.movement === 'NEW')
+        return 'text-green-500 font-bold uppercase text-xs';
+      if (props.song.movement.includes('↑'))
+        return 'text-green-500';
+      if (props.song.movement.includes('↓'))
+        return 'text-red-500';
+      return 'text-gray-500';
+    });
+
+    // ADD: Computed property for action buttons
+    const actionButtons = computed(() => [
+      props.song.youtube_url && {
+        url: `https://www.youtube.com/watch?v=${props.song.youtube_url}`,
+        icon: "pi pi-youtube",
+        color: "text-red-500 hover:text-red-600"
+      },
+      props.song.apple_music_url && {
+        url: props.song.apple_music_url,
+        icon: "pi pi-apple",
+        color: "text-gray-300 hover:text-gray-400"
+      },
+      props.song.spotify_url && {
+        url: `https://open.spotify.com/track/${props.song.spotify_url}`,
+        icon: "fab fa-spotify",
+        color: "text-green-400 hover:text-green-500"
+      }
+    ].filter(Boolean));
 
     async function handleCreatePlaylist() {
       if (!newPlaylistName.value || !newPlaylistName.value.trim()) {
@@ -337,24 +359,6 @@ export default {
       }
     };
 
-    const actionButtons = [
-      props.song.youtube_url && {
-        url: `https://www.youtube.com/watch?v=${props.song.youtube_url}`,
-        icon: "pi pi-youtube",
-        color: "text-red-500 hover:text-red-600"
-      },
-      props.song.apple_music_url && {
-        url: props.song.apple_music_url,
-        icon: "pi pi-apple",
-        color: "text-gray-300 hover:text-gray-400"
-      },
-      props.song.spotify_url && {
-        url: `https://open.spotify.com/track/${props.song.spotify_url}`,
-        icon: "fab fa-spotify",
-        color: "text-green-400 hover:text-green-500"
-      }
-    ].filter(Boolean);
-
     return {
       isExpanded,
       lyrics,
@@ -382,6 +386,7 @@ export default {
       handleAddSong,
       showScrollIndicator,
       preventClose,
+      movementClasses
     };
   }
 };
