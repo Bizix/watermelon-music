@@ -192,19 +192,6 @@ export default {
     const preventClose = ref(false);
     const { showScrollIndicator, checkScroll } = useScrollIndicator(playlistMenuRef);
 
-    // Create a computed property that returns true if this song's dropdown should be open.
-    const isDropdownOpen = computed(() => props.activeDropdownSongId === props.song.id);
-
-    function closeMenuOnOutsideClick(event) {
-      setTimeout(() => {
-        if (preventClose.value) return;
-        if (playlistContainerRef.value && !playlistContainerRef.value.contains(event.target)) {
-          // Emit null to close the dropdown in the parent
-          emit("update-active-dropdown", null);
-          showNewPlaylistInput.value = false;
-        }
-      }, 100);
-    }
 
     onMounted(() => {
       document.addEventListener("click", closeMenuOnOutsideClick);
@@ -225,6 +212,20 @@ export default {
       }
     }
     fetchUser();
+
+    // Create a computed property that returns true if this song's dropdown should be open.
+     const isDropdownOpen = computed(() => props.activeDropdownSongId === props.song.id);
+
+    function closeMenuOnOutsideClick(event) {
+      setTimeout(() => {
+        if (preventClose.value) return;          if (playlistContainerRef.value && !playlistContainerRef.value.contains(event.target)) {
+          // Emit null to close the dropdown in the parent
+          emit("update-active-dropdown", null);
+          showNewPlaylistInput.value = false;
+        }
+      }, 100);
+    }
+
 
     async function handleCreatePlaylist() {
       if (!newPlaylistName.value || !newPlaylistName.value.trim()) {
