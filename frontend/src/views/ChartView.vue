@@ -14,7 +14,12 @@
 
     <!-- ✅ Song List -->
     <div v-if="!isLoading" ref="songListRef" class="overflow-y-auto flex-grow w-full scrollbar-hidden" @scroll="checkScroll">
-      <SongCard v-for="song in filteredRankings" :song="song" />
+      <SongCard 
+      v-for="song in filteredRankings"
+      :key="song.id" 
+      :song="song"
+      :active-dropdown-song-id="activeDropdownSongId"
+      @update-active-dropdown="updateActiveDropdown"/>
     </div>
 
     <!-- ✅ Scroll Indicator -->
@@ -62,6 +67,14 @@ export default {
     const songListRef = ref(null);
     const { showScrollIndicator, checkScroll } = useScrollIndicator(songListRef);
 
+    // New reactive state to track the active dropdown's song id.
+    const activeDropdownSongId = ref(null);
+
+    // When a song card toggles, update the active dropdown id.
+      function updateActiveDropdown(songId) {
+      activeDropdownSongId.value = activeDropdownSongId.value === songId ? null : songId;
+    }
+
     // ✅ Inject global dark mode state & toggle function
     const isDarkMode = inject("isDarkMode");
     const toggleDarkMode = inject("toggleDarkMode");
@@ -108,6 +121,8 @@ export default {
       songListRef,
       isDarkMode,
       toggleDarkMode,
+      activeDropdownSongId,
+      updateActiveDropdown,
     };
   },
 };

@@ -1,6 +1,6 @@
 <template>
   <div class="song-card w-full flex flex-col p-4 shadow-lg border-t transition-colors"
-  :data-id="song.id" :data-song-id="song.melon_song_id">
+    :data-id="song.id" :data-song-id="song.melon_song_id">
     <div class="flex items-center gap-4 w-full">
       <!-- ✅ Rank with Movement -->
       <div class="flex items-center min-w-[50px] justify-center gap-1">
@@ -8,10 +8,10 @@
           {{ song.rank }}
         </span>
         <span class="flex items-end text-sm gap-0.5" :class="{
-        'text-green-500 font-bold uppercase text-xs': song.movement === 'NEW',
-        'text-green-500': song.movement.includes('↑'),
-        'text-red-500': song.movement.includes('↓'),
-        'text-gray-500': song.movement === '-'
+          'text-green-500 font-bold uppercase text-xs': song.movement === 'NEW',
+          'text-green-500': song.movement.includes('↑'),
+          'text-red-500': song.movement.includes('↓'),
+          'text-gray-500': song.movement === '-'
         }">
           <span v-if="song.movement === 'NEW'">
             NEW
@@ -27,8 +27,7 @@
         </span>
       </div>
       <!-- ✅ Album Art -->
-      <img :src="song.art" :alt="song.album" class="w-16 h-16 rounded-md object-cover border border-surface-400"
-      />
+      <img :src="song.art" :alt="song.album" class="w-16 h-16 rounded-md object-cover border border-surface-400" />
       <!-- ✅ Song Info -->
       <div class="flex flex-col flex-grow">
         <p class="text-lg font-semibold text-surface-900">
@@ -45,9 +44,8 @@
       <div class="flex items-center gap-3">
         <template v-for="(button, index) in actionButtons" :key="index">
           <a v-if="button.url" :href="button.url" target="_blank" class="text-xl"
-          :class="button.color">
-            <i :class="button.icon">
-            </i>
+             :class="button.color">
+            <i :class="button.icon"></i>
           </a>
         </template>
         <!-- ✅ Lyrics Button -->
@@ -59,34 +57,37 @@
           <button v-if="user" @click="togglePlaylistMenu($event)" class="text-slg font-medium rounded-lg cursor-pointer transition-colors text-[var(--p-primary-color)] hover:text-[var(--p-primary-400)]">
             +
           </button>
-          <!-- Playlist Dropdown Container (always in the DOM when open) -->
-          <div ref="playlistContainerRef" v-show="showPlaylistMenu" class="absolute right-0 mt-2 w-48 shadow-lg rounded-lg z-50">
-            <!-- Inner wrapper that always stays in the DOM -->
+          <!-- Playlist Dropdown Container -->
+          <!-- Changed v-show to use the computed property isDropdownOpen -->
+          <div ref="playlistContainerRef" v-show="isDropdownOpen" class="absolute right-0 mt-2 w-48 shadow-lg rounded-lg z-50">
+            <!-- Inner wrapper remains unchanged -->
             <div class="relative">
               <!-- Always render the scrollable content -->
               <div ref="playlistMenuRef" class="overflow-y-auto max-h-64 scrollbar-hidden rounded-t-lg rounded-b-lg"
-              :class="{
-              'bg-[var(--p-surface-50)] text-black': !isDarkMode,
-              'bg-[var(--p-surface-100)] text-white': isDarkMode
-              }">
-                <button @click.stop="toggleNewPlaylistInput" class="w-full text-center px-3 py-2 text-xs font-medium hover:bg-gray-100 rounded-t-lg"
                 :class="{
-                'hover:bg-gray-300': !isDarkMode,
-                'dark:hover:bg-[var(--p-surface-500)]': isDarkMode
+                  'bg-[var(--p-surface-50)] text-black': !isDarkMode,
+                  'bg-[var(--p-surface-100)] text-white': isDarkMode
                 }">
+                <button @click.stop="toggleNewPlaylistInput" class="w-full text-center px-3 py-2 text-xs font-medium hover:bg-gray-100 rounded-t-lg"
+                  :class="{
+                    'hover:bg-gray-300': !isDarkMode,
+                    'dark:hover:bg-[var(--p-surface-500)]': isDarkMode
+                  }">
                   Add to new playlist
                 </button>
                 <!-- New Playlist Input -->
                 <div v-if="showNewPlaylistInput">
                   <input id="new-playlist-name" name="newPlaylistName" v-model="newPlaylistName"
-                  type="text" placeholder="Playlist name..." autocomplete="off" class="w-full px-2 py-1 text-sm border-none outline-none focus:ring-0 focus:border-transparent"
-                  />
+                    type="text" placeholder="Playlist name..." autocomplete="off"
+                    @click.stop
+                    class="w-full px-2 py-1 text-sm border-none outline-none focus:ring-0 focus:border-transparent" />
+
                   <button @click.stop="handleCreatePlaylist" :disabled="!newPlaylistName.trim()"
-                  class="w-full px-2 py-1 text-sm font-medium cursor-pointer text-white transition-colors"
-                  :class="{
-                  'bg-green-500 hover:bg-green-600': newPlaylistName.trim(),
-                  'bg-gray-300 cursor-not-allowed': !newPlaylistName.trim()
-                  }">
+                    class="w-full px-2 py-1 text-sm font-medium cursor-pointer text-white transition-colors"
+                    :class="{
+                      'bg-green-500 hover:bg-green-600': newPlaylistName.trim(),
+                      'bg-gray-300 cursor-not-allowed': !newPlaylistName.trim()
+                    }">
                     Create
                   </button>
                 </div>
@@ -95,35 +96,37 @@
                   No playlists found.
                 </p>
                 <div class="w-48 shadow-lg z-50 rounded-b-lg" :class="{
-                'bg-[var(--p-surface-50)] text-black': !isDarkMode,
-                'bg-[var(--p-surface-100)] text-white': isDarkMode
+                  'bg-[var(--p-surface-50)] text-black': !isDarkMode,
+                  'bg-[var(--p-surface-100)] text-white': isDarkMode
                 }">
-                  <div v-for="(playlist, index) in playlists" :data-playlist-id="playlist.id"
-                  class="text-xs font-medium flex items-center justify-between px-1 py-1 pl-2 border-t border-gray-400"
-                  :class="{ 'rounded-b-lg': index === playlists.length - 1 }">
-                    <span class="text-sm">
-                      {{ playlist.name }}
-                    </span>
-                    <button @click.stop="playlist.songs.includes(song.id) ? handleRemoveSong(playlist.id) : handleAddSong(playlist.id)"
-                    :class="[
-                    'text-sm px-3 py-2 rounded text-white',
-                    playlist.songs.includes(song.id)
-                    ? 'bg-red-700 hover:bg-red-800'
-                    : 'bg-[var(--p-primary-500)] hover:bg-[var(--p-primary-400)]'
-                    ]">
-                      {{ playlist.songs.includes(song.id) ? "−" : "+" }}
-                    </button>
-                  </div>
+                <div v-for="(playlist, index) in playlists" 
+                    :data-playlist-id="playlist.id"
+                    class="text-xs font-medium flex items-center justify-between px-1 py-1 pl-2 border-t border-gray-400"
+                    :class="{ 'rounded-b-lg': index === playlists.length - 1 }"
+                    @click.stop>
+                  <span class="text-sm">
+                    {{ playlist.name }}
+                  </span>
+                  <button @click.stop="playlist.songs.includes(song.id) ? handleRemoveSong(playlist.id) : handleAddSong(playlist.id)"
+                          :class="[
+                            'text-sm px-3 py-2 rounded text-white',
+                            playlist.songs.includes(song.id)
+                              ? 'bg-red-700 hover:bg-red-800'
+                              : 'bg-[var(--p-primary-500)] hover:bg-[var(--p-primary-400)]'
+                          ]">
+                    {{ playlist.songs.includes(song.id) ? "−" : "+" }}
+                  </button>
+                </div>
                 </div>
               </div>
               <!-- Overlay the spinner on top of the content if loading -->
               <div v-if="isPlaylistLoading" class="absolute inset-0 flex items-center justify-center z-50 bg-[rgba(255,255,255,0.6)] rounded-lg">
                 <LoadingSpinner :isLoading="true" message="Loading playlists" size="w-10 h-10"
-                color="fill-green-500" />
+                  color="fill-green-500" />
               </div>
               <!-- ScrollIndicator remains as before -->
               <ScrollIndicator class="absolute bottom-0 left-0 w-full pointer-events-none"
-              v-if="!isPlaylistLoading" :showScrollIndicator="showScrollIndicator" />
+                v-if="!isPlaylistLoading" :showScrollIndicator="showScrollIndicator" />
             </div>
           </div>
         </div>
@@ -132,16 +135,13 @@
     <!-- ✅ Expanded Lyrics Section -->
     <transition name="fade">
       <div v-if="isExpanded" class="mt-3 p-3 text-center border-t w-full bg-surface-200 border-surface-300">
-        <!-- ✅ Show Spinner While Loading -->
         <div v-if="isLoading" class="flex flex-grow pt-3 items-center justify-center">
           <LoadingSpinner :isLoading="true" message="Loading lyrics..." size="w-10 h-10"
-          color="fill-green-500" />
+            color="fill-green-500" />
         </div>
-        <!-- ✅ Display Lyrics -->
         <p v-else-if="lyrics" class="whitespace-pre-line pt-3 text-surface-700">
           {{ lyrics }}
         </p>
-        <!-- ✅ Error Message -->
         <p v-else class="italic text-surface-700 pt-3">
           ❌ Lyrics not found.
         </p>
@@ -151,7 +151,7 @@
 </template>
 
 <script>
-import { ref, watch, nextTick, inject, onMounted, onUnmounted } from "vue";
+import { ref, inject, onMounted, onUnmounted, computed } from "vue";
 import { supabase } from "@/lib/supabaseClient";
 import LoadingSpinner from "@/components/LoadingSpinner.vue";
 import { usePlaylist } from "@/composables/usePlaylist";
@@ -160,17 +160,22 @@ import useScrollIndicator from "@/composables/useScrollIndicator.ts";
 import { API_BASE_URL } from "../config";
 
 export default {
+  // Add the new prop for the centralized dropdown state
   props: {
     song: {
       type: Object,
       required: true
+    },
+    activeDropdownSongId: {
+      type: [String, Number, null],
+      default: null
     }
   },
   components: {
     LoadingSpinner,
     ScrollIndicator
   },
-  setup(props) {
+  setup(props, { emit }) {
     const isExpanded = ref(false);
     const lyrics = ref(null);
     const isLoading = ref(false);
@@ -179,7 +184,6 @@ export default {
     const playlists = inject("playlists");
     const { fetchPlaylists, createPlaylist, addToPlaylist, removeFromPlaylist } = usePlaylist();
     const user = inject("user");
-    const showPlaylistMenu = ref(false);
     const showNewPlaylistInput = ref(false);
     const newPlaylistName = ref("");
     const playlistMenuRef = ref(null);
@@ -187,12 +191,15 @@ export default {
     const preventClose = ref(false);
     const { showScrollIndicator, checkScroll } = useScrollIndicator(playlistMenuRef);
 
+    // Create a computed property that returns true if this song's dropdown should be open.
+    const isDropdownOpen = computed(() => props.activeDropdownSongId === props.song.id);
+
     function closeMenuOnOutsideClick(event) {
       setTimeout(() => {
         if (preventClose.value) return;
-
         if (playlistContainerRef.value && !playlistContainerRef.value.contains(event.target)) {
-          showPlaylistMenu.value = false;
+          // Emit null to close the dropdown in the parent
+          emit("update-active-dropdown", null);
           showNewPlaylistInput.value = false;
         }
       }, 100);
@@ -205,18 +212,6 @@ export default {
     onUnmounted(() => {
       document.removeEventListener("click", closeMenuOnOutsideClick);
       if (playlistMenuRef.value) {
-        playlistMenuRef.value.removeEventListener("scroll", checkScroll);
-      }
-    });
-
-    watch(showPlaylistMenu, async (isOpen, wasOpen) => {
-      if (isOpen) {
-        await nextTick(); // Wait until the dropdown is rendered
-        if (playlistMenuRef.value) {
-          playlistMenuRef.value.addEventListener("scroll", checkScroll);
-          checkScroll(); // Trigger an initial check in case it's already scrolled
-        }
-      } else if (wasOpen && playlistMenuRef.value) {
         playlistMenuRef.value.removeEventListener("scroll", checkScroll);
       }
     });
@@ -236,7 +231,6 @@ export default {
         return;
       }
       isPlaylistLoading.value = true;
-
       try {
         const newPlaylist = await createPlaylist(user.value.id, newPlaylistName.value);
         if (newPlaylist) {
@@ -251,47 +245,45 @@ export default {
           playlists.value.unshift(newPlaylist);
         }
       } finally {
-      isPlaylistLoading.value = false;
-      preventClose.value = true;
-      setTimeout(() => { preventClose.value = false; }, 100);
+        isPlaylistLoading.value = false;
+        preventClose.value = true;
+        setTimeout(() => { preventClose.value = false; }, 100);
       }
     }
 
     async function handleAddSong(playlistId) {
       isPlaylistLoading.value = true;
-
       try {
-          const success = await addToPlaylist(playlistId, props.song.id, user.value.id);
-          if (success) {
-            const playlist = playlists.value.find(p => p.id === playlistId);
-            if (playlist) {
-              playlist.songs.push(props.song.id);
-            }
+        const success = await addToPlaylist(playlistId, props.song.id, user.value.id);
+        if (success) {
+          const playlist = playlists.value.find(p => p.id === playlistId);
+          if (playlist) {
+            playlist.songs.push(props.song.id);
           }
-        } finally {
-          isPlaylistLoading.value = false;
-          preventClose.value = true;
-          setTimeout(() => { preventClose.value = false; }, 100);
         }
+      } finally {
+        isPlaylistLoading.value = false;
+        preventClose.value = true;
+        setTimeout(() => { preventClose.value = false; }, 100);
       }
+    }
 
-      async function handleRemoveSong(playlistId) {
-        isPlaylistLoading.value = true;
-
-        try {
-          const success = await removeFromPlaylist(playlistId, props.song.id, user.value.id);
-          if (success) {
-            const playlist = playlists.value.find(p => p.id === playlistId);
-            if (playlist) {
-              playlist.songs = playlist.songs.filter(songId => songId !== props.song.id);
-            }
+    async function handleRemoveSong(playlistId) {
+      isPlaylistLoading.value = true;
+      try {
+        const success = await removeFromPlaylist(playlistId, props.song.id, user.value.id);
+        if (success) {
+          const playlist = playlists.value.find(p => p.id === playlistId);
+          if (playlist) {
+            playlist.songs = playlist.songs.filter(songId => songId !== props.song.id);
           }
-        } finally {
-          isPlaylistLoading.value = false;
-          preventClose.value = true;
-          setTimeout(() => { preventClose.value = false; }, 100);
         }
+      } finally {
+        isPlaylistLoading.value = false;
+        preventClose.value = true;
+        setTimeout(() => { preventClose.value = false; }, 100);
       }
+    }
 
     async function toggleSongInPlaylist(playlistId) {
       const playlist = playlists.value.find(p => p.id === playlistId);
@@ -308,19 +300,19 @@ export default {
       }
     }
 
+    // Modify toggleNewPlaylistInput to open the dropdown if it isn't open.
     function toggleNewPlaylistInput() {
-      if (!showPlaylistMenu.value) {
-        showPlaylistMenu.value = true;
+      if (!isDropdownOpen.value) {
+        emit("update-active-dropdown", props.song.id);
       }
       showNewPlaylistInput.value = !showNewPlaylistInput.value;
     }
 
+    // Update togglePlaylistMenu to use the parent state instead of local state.
     function togglePlaylistMenu(event) {
       event.stopPropagation();
-      if (showPlaylistMenu.value) {
-        showNewPlaylistInput.value = false;
-      }
-      showPlaylistMenu.value = !showPlaylistMenu.value;
+      // Emit the current song id to toggle the dropdown in the parent.
+      emit("update-active-dropdown", props.song.id);
     }
 
     async function fetchLyrics() {
@@ -381,7 +373,7 @@ export default {
       actionButtons,
       user,
       playlists,
-      showPlaylistMenu,
+      isDropdownOpen,
       showNewPlaylistInput,
       newPlaylistName,
       fetchUser,
