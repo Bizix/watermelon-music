@@ -130,6 +130,7 @@
   import { ref, onMounted, onUnmounted, markRaw, inject } from "vue";
   import { supabase } from "@/lib/supabaseClient";
   import emitter from "@/lib/emitter";
+  import { useRouter } from 'vue-router';
 
   import Modal from "@/components/Modal.vue";
   import LoginModal from "@/components/modals/LoginModal.vue";
@@ -138,7 +139,7 @@
 
 
 
-
+  const router = useRouter();
   const isDarkMode = inject("isDarkMode");
   const toggleDarkMode = inject("toggleDarkMode");
   
@@ -222,7 +223,7 @@ async function handleAccountDeletion() {
 
 
   function goToPlaylists() {
-    console.log("📂 Navigate to Playlists (Implement routing here)");
+    router.push('/playlists');
     showUserMenu.value = false;
   }
   </script>
