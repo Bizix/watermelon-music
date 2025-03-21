@@ -153,11 +153,12 @@
 <script>
 import { ref, inject, onMounted, onUnmounted, computed } from "vue";
 import { supabase } from "@/lib/supabaseClient";
-import LoadingSpinner from "@/components/LoadingSpinner.vue";
 import { usePlaylist } from "@/composables/usePlaylist";
+import { fetchLyrics as getLyrics } from "@/api/fetchLyrics";
+
+import LoadingSpinner from "@/components/LoadingSpinner.vue";
 import ScrollIndicator from "@/components/ScrollIndicator.vue";
 import useScrollIndicator from "@/composables/useScrollIndicator.ts";
-import { API_BASE_URL } from "../config";
 
 export default {
   // Add the new prop for the centralized dropdown state
@@ -315,35 +316,24 @@ export default {
       emit("update-active-dropdown", props.song.id);
     }
 
-    async function fetchLyrics() {
-      if (lyrics.value || isLoading.value) return;
-      if (props.song.lyrics) {
-        lyrics.value = props.song.lyrics;
-        return;
-      }
-      console.log("🔄 Fetching Lyrics - Loading Starts");
-      isLoading.value = true;
-      try {
-        const response = await fetch(
-          `${API_BASE_URL}/api/lyrics?title=${encodeURIComponent(props.song.title)}&artist=${encodeURIComponent(props.song.artist)}&songId=${props.song.melon_song_id}`
-        );
-        const data = await response.json();
-        if (response.ok && data.lyrics) {
-          lyrics.value = data.lyrics;
-        } else {
-          console.error("❌ No lyrics found:", data.error);
-        }
-      } catch (error) {
-        console.error("❌ Failed to fetch lyrics:", error);
-      } finally {
-        console.log("✅ Fetching Lyrics - Loading Ends");
-        isLoading.value = false;
-      }
-    }
-
-    const toggleExpand = () => {
+    const toggleExpand = async () => {
       isExpanded.value = !isExpanded.value;
-      if (isExpanded.value && !lyrics.value) fetchLyrics();
+      if (isExpanded.value && !lyrics.value) {
+        isLoading.value = true;
+        try {
+          // Pass the song details along with any pre-existing lyrics.
+          lyrics.value = await getLyrics(
+            props.song.title,
+            props.song.artist,
+            props.song.melon_song_id,
+            props.song.lyrics
+          );
+        } catch (error) {
+          console.error("❌ Failed to fetch lyrics:", error);
+        } finally {
+          isLoading.value = false;
+        }
+      }
     };
 
     const actionButtons = [
