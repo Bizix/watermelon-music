@@ -1,5 +1,5 @@
 const pool = require("../config/db");
-const { setCache } = require("./cacheService");
+const { getCache, setCache } = require("./cacheService");
 
 const scrapingStatus = {}; // ✅ Track ongoing scraping jobs
 
@@ -14,8 +14,17 @@ function getScrapeStatus(genreCode) {
  * @returns {Promise<boolean>} - Returns true if scraping is needed
  */
 async function shouldScrapeGenre(genreCode) {
-  const client = await pool.connect();
+  // ✅ Check cache first
+  const cacheKey = `genre_last_updated_${genreCode}`;
+  const lastUpdated = getCache(cacheKey);
 
+  if (lastUpdated) {
+    // ✅ If last updated within 24h, no need to scrape
+    return Date.now() - lastUpdated > 24 * 60 * 60 * 1000;
+  }
+
+  // ✅ If cache is empty, fall back to DB query
+  const client = await pool.connect();
   try {
     const result = await client.query(
       `SELECT g.last_updated 
@@ -26,15 +35,18 @@ async function shouldScrapeGenre(genreCode) {
 
     if (result.rows.length === 0) return true; // ✅ If genre doesn't exist, scrape
 
-    const { last_updated: lastUpdated } = result.rows[0];
+    const dbLastUpdated = new Date(result.rows[0].last_updated).getTime();
+    setCache(cacheKey, dbLastUpdated); // ✅ Store last updated time in cache
 
-    return (
-      !lastUpdated ||  // ✅ If last_updated is NULL, force a scrape
-      Date.now() - new Date(lastUpdated).getTime() > 24 * 60 * 60 * 1000  // ✅ Only scrape if last update was over 24 hours ago
-    );
+    return Date.now() - dbLastUpdated > 24 * 60 * 60 * 1000;
   } catch (error) {
-    console.error(`❌ Error checking update conditions for ${genreCode}:`, error);
+    console.error(
+      `❌ Error checking update conditions for ${genreCode}:`,
+      error
+    );
     return true; // ✅ Assume scraping is needed in case of error
+  } finally {
+    client.release();
   }
 }
 
@@ -59,8 +71,14 @@ async function getRankings(genreCode) {
       [genreCode]
     );
 
-    const rankings = rankingsResult.rows;
-    console.log(`✅ Using database data for ${genreCode}`)
+    let rankings = rankingsResult.rows;
+    console.log(`✅ Using database data for ${genreCode}`);
+
+    // ✅ Do NOT auto-fetch missing lyrics, return `null`
+    rankings = rankings.map(song => ({
+      ...song,
+       lyrics: song.lyrics || null // Ensure missing lyrics return `null` instead of undefined
+    }));
 
     // ✅ Store results in cache
     setCache(genreCode, rankings);

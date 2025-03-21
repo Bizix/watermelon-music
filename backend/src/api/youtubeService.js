@@ -67,13 +67,6 @@ async function fetchYouTubeUrl(title, artist) {
     return null;
   }
 
-  const cacheKey = `youtube_${title}_${artist}`;
-  const cachedUrl = getCache(cacheKey);
-  if (cachedUrl) {
-    console.log(`✅ Loaded YouTube URL from cache for ${title} - ${artist}`);
-    return cachedUrl;
-  }
-
   const client = await pool.connect();
   try {
     // ✅ Check database first

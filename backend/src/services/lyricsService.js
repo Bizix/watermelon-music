@@ -14,8 +14,16 @@ const GOOGLE_CSE_ID = process.env.GOOGLE_CSE_ID;
  * @returns {Promise<string|null>} - Lyrics or null if not found
  */
 async function getLyrics(title, artist, songId) {
-  console.log(`🔎 Checking database for lyrics: ${title} - ${artist}`);
+  const cacheKey = `lyrics_${songId}`;
 
+  // ✅ Check cache before querying the database
+  const cachedLyrics = getCache(cacheKey);
+  if (cachedLyrics) {
+    console.log(`✅ Using cached lyrics for ${title} - ${artist}`);
+    return cachedLyrics;
+  }
+
+  console.log(`🔎 Checking database for lyrics: ${title} - ${artist}`);
   const client = await pool.connect();
   try {
     // ✅ Fetch lyrics, eng_saved, and updated_at from database
@@ -32,7 +40,10 @@ async function getLyrics(title, artist, songId) {
     if (result.rows.length > 0) {
       let { lyrics, eng_saved, updated_at } = result.rows[0];
 
-      console.log(`✅ Lyrics found in database. Checking conditions...`);
+      // ✅ Only cache lyrics if they exist
+      if (lyrics) {
+        setCache(cacheKey, lyrics);
+      }
 
       // ✅ Convert `updated_at` to Date and check if it's over 1 month old
       const lastUpdated = new Date(updated_at);
@@ -40,7 +51,9 @@ async function getLyrics(title, artist, songId) {
       oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
       if (!eng_saved && lastUpdated < oneMonthAgo) {
-        console.log(`🔄 Lyrics are over 1 month old and not English. Rechecking Genius...`);
+        console.log(
+          `🔄 Lyrics are outdated and not English. Rechecking Genius...`
+        );
 
         // ✅ Attempt to get new Genius lyrics
         const geniusLyrics = await searchGeniusLyrics(title, artist, songId);
@@ -56,21 +69,8 @@ async function getLyrics(title, artist, songId) {
                               LIMIT 1)`,
             [geniusLyrics, title, artist]
           );
-
-          // ✅ Store updated lyrics in cache and return them
+          setCache(cacheKey, geniusLyrics);
           return geniusLyrics;
-        } else {
-          console.log(`❌ Genius still has no English lyrics. Keeping existing Melon lyrics.`);
-
-          // ✅ Ensure `eng_saved = FALSE` so we don't mistakenly think it's English
-          await client.query(
-            `UPDATE song_lyrics 
-             SET updated_at = NOW(), eng_saved = FALSE 
-             WHERE song_id = (SELECT id FROM songs WHERE title = $1 
-                              AND artist_id = (SELECT id FROM artists WHERE name = $2) 
-                              LIMIT 1)`,
-            [title, artist]
-          );
         }
       }
       return lyrics;
@@ -79,37 +79,9 @@ async function getLyrics(title, artist, songId) {
     client.release();
   }
 
-  // ✅ If not in DB at all, scrape from Genius first
-  console.log(`🕵️ Searching Google for lyrics: ${title} - ${artist}`);
-  const lyrics = await searchGeniusLyrics(title, artist, songId);
-
-  if (lyrics) {
-    console.log(`✅ Returning lyrics from database.`);
-  } else {
-    console.log(`❌ No Genius lyrics found for a new song. Marking as non-English.`);
-
-    // ✅ Ensure `eng_saved = FALSE` when inserting new lyrics from Melon
-    await client.query(
-      `INSERT INTO song_lyrics (song_id, lyrics, eng_saved, updated_at) 
-       VALUES (
-         (SELECT id FROM songs WHERE title = $1 
-          AND artist_id = (SELECT id FROM artists WHERE name = $2) LIMIT 1), 
-         $3, 
-         FALSE, 
-         NOW()
-       ) 
-       ON CONFLICT (song_id) 
-       DO UPDATE SET 
-         updated_at = NOW(), 
-         eng_saved = FALSE
-       RETURNING *`,
-      [title, artist, lyrics || ""] // ✅ If lyrics are null, store an empty string
-    );
-  }
-
-  return lyrics;
+  // ✅ If not in DB at all, scrape from Genius
+  return await searchGeniusLyrics(title, artist, songId);
 }
-
 
 /**
  * ✅ Clean up and format fetched lyrics
@@ -174,7 +146,6 @@ async function searchGeniusLyrics(title, artist, songId) {
       items.map((item) => item.link)
     );
 
-    // ✅ Find the first Genius result with "English Translation"
     let geniusLink = items.find(
       (item) =>
         item.link.toLowerCase().includes("genius.com") &&
@@ -182,32 +153,14 @@ async function searchGeniusLyrics(title, artist, songId) {
     );
 
     if (!geniusLink) {
-      console.warn(`⚠️ No Genius English Translation found.`);
-    
-      // ✅ Only scrape from Melon if the song is NOT already in the database
-      const existingLyricsCheck = await pool.query(
-        `SELECT eng_saved FROM song_lyrics 
-         WHERE song_id = (SELECT id FROM songs WHERE title = $1 
-                          AND artist_id = (SELECT id FROM artists WHERE name = $2) 
-                          LIMIT 1)`,
-        [title, artist]
+      console.warn(
+        `⚠️ No Genius English Translation found. Scraping Melon instead...`
       );
-    
-      if (existingLyricsCheck.rows.length > 0) {
-        console.log(`✅ Song already has lyrics in database. No need to re-scrape Melon.`);
-        return null; // ✅ Do not scrape Melon again if lyrics already exist
-      }
-    
-      console.log(`🔄 Song is new. Scraping Melon lyrics...`);
-      return await scrapeBackupLyrics(title, artist, songId); // ✅ Only scrape Melon if lyrics don’t exist
+      return await scrapeBackupLyrics(title, artist, songId);
     }
 
     console.log(`🔗 Found Genius lyrics page: ${geniusLink.link}`);
-
-    // Manually update link
-    // geniusLink.link = "correct link"
-
-    return await scrapeLyricsFromGenius('geniusLink.link', title, artist);
+    return await scrapeLyricsFromGenius(geniusLink.link, title, artist, songId);
   } catch (error) {
     console.error(
       "❌ Google Search API Error:",
@@ -218,36 +171,28 @@ async function searchGeniusLyrics(title, artist, songId) {
 }
 
 /**
- * ✅ Scrape Genius Lyrics Page & Fetch Annotations
+ * ✅ Scrape Genius Lyrics Page
  * @param {string} url - Genius lyrics page URL
- * @param {string} title
- * @param {string} artist
  * @returns {Promise<string|null>} - Extracted lyrics
  */
-async function scrapeLyricsFromGenius(url, title, artist) {
+async function scrapeLyricsFromGenius(url, title, artist, songId) {
   console.log(`📜 Scraping lyrics from Genius: ${url}`);
 
   const browser = await puppeteer.launch({
-    headless: "new", // Helps avoid bot detection
+    headless: "new",
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
-
   const page = await browser.newPage();
-
   let lyrics = null;
-  let engSaved = false;
 
   try {
     await page.setUserAgent(
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"
     );
 
-    console.log(`🚀 Navigating to Genius page...`);
     await page.goto(url, { waitUntil: "networkidle2", timeout: 60000 });
-
     await page.waitForSelector("[data-lyrics-container]", { timeout: 20000 });
 
-    console.log(`🔍 Looking for visible lyrics...`);
     const rawLyrics = await page.$$eval(
       "[data-lyrics-container]",
       (containers) => containers.map((c) => c.innerText).join("\n")
@@ -257,51 +202,27 @@ async function scrapeLyricsFromGenius(url, title, artist) {
     lyrics = cleanLyrics(rawLyrics); // ✅ Apply fix before saving
 
     if (lyrics) {
-      engSaved = true; // ✅ Set engSaved to true since Genius was used
-    } else {
-      console.warn(`⚠️ No lyrics found on page: ${url}`);
-    }
-    if (!lyrics) return null;
+      setCache(`lyrics_${songId}`, lyrics);
 
-    // ✅ Store in the database
-    const client = await pool.connect();
-    try {
+      const client = await pool.connect();
       await client.query(
         `INSERT INTO song_lyrics (song_id, lyrics, eng_saved) 
-        VALUES ((SELECT id FROM songs WHERE title = $1 AND artist_id = (SELECT id FROM artists WHERE name = $2) LIMIT 1), 
-          $3, 
-          $4) 
-        ON CONFLICT (song_id) 
-        DO UPDATE SET 
-          lyrics = EXCLUDED.lyrics, 
-          eng_saved = EXCLUDED.eng_saved
-        RETURNING *`,
-        [title, artist, lyrics, engSaved]
+         VALUES ((SELECT id FROM songs WHERE title = $1 AND artist_id = (SELECT id FROM artists WHERE name = $2) LIMIT 1), 
+           $3, TRUE) 
+         ON CONFLICT (song_id) DO UPDATE SET lyrics = EXCLUDED.lyrics, eng_saved = EXCLUDED.eng_saved`,
+        [title, artist, lyrics]
       );
-    } finally {
       client.release();
     }
-
-    // ✅ Store in cache so we don’t scrape again soon
-    const cacheKey = `lyrics_${title}_${artist}`;
-    setCache(cacheKey, lyrics);
-
-    return lyrics;
   } catch (error) {
     console.error("❌ Error scraping lyrics from Genius:", error);
-    return null;
   } finally {
     await browser.close();
   }
+
+  return lyrics;
 }
 
-/**
- * ✅ Scrape Backup Lyrics from Melon
- * @param {string} title - Song title
- * @param {string} artist - Artist name
- * @param {number} songId - Melon song ID
- * @returns {Promise<string|null>} - Scraped lyrics or null
- */
 async function scrapeBackupLyrics(title, artist, songId) {
   console.log(`📜 Scraping backup lyrics from Melon for song ID: ${songId}`);
 
@@ -328,9 +249,12 @@ async function scrapeBackupLyrics(title, artist, songId) {
     await page.waitForSelector(".lyric#d_video_summary", { timeout: 20000 });
 
     console.log(`🔍 Looking for lyrics container...`);
-    
+
     // ✅ Extract lyrics from Melon page
-    const rawLyrics = await page.$eval(".lyric#d_video_summary", (el) => el.innerText);
+    const rawLyrics = await page.$eval(
+      ".lyric#d_video_summary",
+      (el) => el.innerText
+    );
 
     lyrics = cleanLyrics(rawLyrics); // ✅ Apply cleaning function
 
@@ -348,28 +272,34 @@ async function scrapeBackupLyrics(title, artist, songId) {
   }
 
   // ✅ Store in the database
-  const client = await pool.connect();
+  let client;
   try {
+    client = await pool.connect();
+    const songResult = await client.query(
+      `SELECT id FROM songs WHERE melon_song_id = $1 LIMIT 1`,
+      [songId]
+    );
+    if (songResult.rows.length === 0) {
+      throw new Error("Song not found in the database using melon_id.");
+    }
+    const songIdFromDB = songResult.rows[0].id;
+
     await client.query(
       `INSERT INTO song_lyrics (song_id, lyrics, eng_saved) 
-       VALUES (
-         (SELECT id FROM songs WHERE title = $1 AND artist_id = (SELECT id FROM artists WHERE name = $2) LIMIT 1), 
-         $3, 
-         $4
-       ) 
+       VALUES ($1, $2, $3)
        ON CONFLICT (song_id) 
-       DO UPDATE SET 
-         lyrics = EXCLUDED.lyrics, 
-         eng_saved = EXCLUDED.eng_saved
+       DO UPDATE SET lyrics = EXCLUDED.lyrics, eng_saved = EXCLUDED.eng_saved
        RETURNING *`,
-      [title, artist, lyrics, engSaved] // ✅ Ensures eng_saved is FALSE for Melon lyrics
+      [songIdFromDB, lyrics, engSaved]
     );
+
+    console.log(`✅ Melon lyrics saved to database.`);
   } finally {
-    client.release();
+    setCache(`lyrics_${songId}`, lyrics);
+    if (client) client.release();
   }
 
   return lyrics;
 }
-
-// ✅ Export the functions
+// ✅ Export functions
 module.exports = { getLyrics, scrapeLyricsFromGenius };

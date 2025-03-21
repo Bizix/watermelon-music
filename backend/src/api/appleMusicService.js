@@ -1,6 +1,5 @@
 const axios = require("axios");
 const pool = require("../config/db");
-const { getCache, setCache } = require("../services/cacheService");
 
 const APPLE_MUSIC_API_KEY = process.env.APPLE_MUSIC_API_KEY;
 const APPLE_MUSIC_SEARCH_URL = "https://api.music.apple.com/v1/catalog/us/search";
@@ -66,14 +65,6 @@ async function fetchAppleMusicUrl(title, artist, album) {
     return null;
   }
 
-  const cacheKey = `applemusic_${title}_${artist}_${album}`;
-  const cachedData = getCache(cacheKey);
-
-  if (cachedData) {
-    console.log(`✅ Loaded Apple Music URL from cache for ${title} - ${artist} - ${album}`);
-    return cachedData;
-  }
-
   const client = await pool.connect();
 
   try {
@@ -90,7 +81,6 @@ async function fetchAppleMusicUrl(title, artist, album) {
       // ✅ If URL is fresh, return it
       if (apple_music_url && apple_music_last_updated && Date.now() - new Date(apple_music_last_updated).getTime() < APPLE_MUSIC_REFRESH_MS) {
         console.log(`✅ Using existing Apple Music URL for ${title} - ${artist} - ${album}`);
-        setCache(cacheKey, apple_music_url);
         return apple_music_url;
       }
     }
@@ -106,8 +96,7 @@ async function fetchAppleMusicUrl(title, artist, album) {
       [appleMusicUrl, title, artist, album]
     );
 
-    // ✅ Store in cache
-    setCache(cacheKey, appleMusicUrl);
+
     console.log(`✅ Apple Music URL saved: ${appleMusicUrl}`);
 
     return appleMusicUrl;

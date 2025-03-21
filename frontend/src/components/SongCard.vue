@@ -106,10 +106,10 @@
                     </span>
                     <button @click.stop="playlist.songs.includes(song.id) ? handleRemoveSong(playlist.id) : handleAddSong(playlist.id)"
                     :class="[
-                    'text-sm px-3 py-2 rounded',
+                    'text-sm px-3 py-2 rounded text-white',
                     playlist.songs.includes(song.id)
                     ? 'bg-red-700 hover:bg-red-800'
-                    : 'text-white bg-[var(--p-primary-500)] hover:bg-[var(--p-primary-400)]'
+                    : 'bg-[var(--p-primary-500)] hover:bg-[var(--p-primary-400)]'
                     ]">
                       {{ playlist.songs.includes(song.id) ? "−" : "+" }}
                     </button>
