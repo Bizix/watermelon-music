@@ -57,7 +57,7 @@ async function getPlaylistSongs(playlistId) {
     return cachedSongs;
   }
 
-  console.log(`📥 Fetching songs for playlist ${playlistId}`);
+  // console.log(`📥 Fetching songs for playlist ${playlistId}`);
 
   const { data, error } = await supabaseAdmin
     .from("playlist_songs")
