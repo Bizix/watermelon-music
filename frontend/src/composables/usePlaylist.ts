@@ -60,8 +60,8 @@ export function usePlaylist() {
   }
 
   // ✅ Add a song to a playlist
-  async function addToPlaylist(playlistId: string, songId: string): Promise<boolean | void> {    
-    if (!playlistId || !songId) return;
+  async function addToPlaylist(playlistId: string, songId: string,  userId: string): Promise<boolean | void> {    
+    if (!playlistId || !songId || !userId) return;
 
     isLoading.value = true;
     errorMessage.value = "";
@@ -70,7 +70,7 @@ export function usePlaylist() {
       const response = await fetch(`${API_BASE_URL}/api/playlistRoutes/add-song`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ playlistId, songId }),
+        body: JSON.stringify({ playlistId, songId, userId }),
       });
 
       if (!response.ok) {
@@ -87,8 +87,8 @@ export function usePlaylist() {
   }
 
   // ✅ Remove a song from a playlist
-  async function removeFromPlaylist(playlistId: string, songId: string): Promise<boolean | void> {
-    if (!playlistId || !songId) return;
+  async function removeFromPlaylist(playlistId: string, songId: string, userId: string): Promise<boolean | void> {
+    if (!playlistId || !songId || !userId) return;
 
     isLoading.value = true;
     errorMessage.value = "";
@@ -97,7 +97,7 @@ export function usePlaylist() {
       const response = await fetch(`${API_BASE_URL}/api/playlistRoutes/remove-song`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ playlistId, songId }),
+        body: JSON.stringify({ playlistId, songId,  userId }),
       });
 
       if (!response.ok) {

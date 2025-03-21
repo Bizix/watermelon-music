@@ -1,6 +1,5 @@
 const express = require("express");
-const {  getUserPlaylists,
-  getPlaylistSongs,
+const {  getUserPlaylistsWithSongs,
   createPlaylist,
   addSongToPlaylist,
   removeSongFromPlaylist,
@@ -10,10 +9,8 @@ const {  getUserPlaylists,
 
 const router = express.Router();
 
-
-
 /**
- * ✅ Get all playlists for a user
+ * ✅ Get all playlists for a user with songs
  */
 router.get("/", async (req, res) => {
   const { userId } = req.query;
@@ -23,33 +20,14 @@ router.get("/", async (req, res) => {
   }
 
   try {
-    const playlists = await getUserPlaylists(userId);
+    // Use the new function that returns playlists with songs already embedded
+    const playlists = await getUserPlaylistsWithSongs(userId);
     res.json(playlists);
   } catch (error) {
     console.error("❌ Error fetching playlists:", error.message);
     res.status(500).json({ error: error.message });
   }
 });
-
-/**
- * ✅ Get all songs for a user's playlist
- */
-router.get("/songs", async (req, res) => {
-  const { playlistId } = req.query;
-
-  if (!playlistId) {
-    return res.status(400).json({ error: "Missing playlistId" });
-  }
-
-  try {
-    const songs = await getPlaylistSongs(playlistId);
-    res.json(songs);
-  } catch (error) {
-    console.error("❌ Error fetching playlist songs:", error.message);
-    res.status(500).json({ error: error.message });
-  }
-});
-
 
 /**
  * ✅ Create a Playlist
@@ -79,8 +57,15 @@ router.post("/create", async (req, res) => {
  */
 router.post("/add-song", async (req, res) => {
   try {
-    const { playlistId, songId } = req.body;
-    const response = await addSongToPlaylist(playlistId, songId);
+    const { playlistId, songId, userId } = req.body;
+
+    if (!playlistId || !songId || !userId) {
+      console.error("❌ Missing parameters:", { playlistId, songId, userId });
+      return res.status(400).json({ error: "Missing playlistId or songId" });
+    }
+    
+
+    const response = await addSongToPlaylist(playlistId, songId, userId);
     res.json(response);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -93,14 +78,14 @@ router.post("/add-song", async (req, res) => {
 router.post("/remove-song", async (req, res) => {
 
   try {
-    const { playlistId, songId } = req.body;
+    const { playlistId, songId, userId } = req.body;
 
-    if (!playlistId || !songId) {
-      console.error("❌ Missing parameters:", { playlistId, songId });
+    if (!playlistId || !songId || !userId) {
+      console.error("❌ Missing parameters:", { playlistId, songId, userId });
       return res.status(400).json({ error: "Missing playlistId or songId" });
     }
     
-    const response = await removeSongFromPlaylist(playlistId, songId);
+    const response = await removeSongFromPlaylist(playlistId, songId, userId);
     
     res.json(response);
   } catch (error) {

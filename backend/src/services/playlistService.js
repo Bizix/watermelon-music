@@ -1,79 +1,50 @@
 const { supabaseAdmin } = require("../config/supabaseAdmin");
-const { getCache, setCache } = require("../services/cacheService");
+const { getCache, setCache, removeCache } = require("../services/cacheService");
 
-
-/**
- * ✅ Fetch playlists for a user (Checks Cache)
- */
-async function getUserPlaylists(userId) {
+async function getUserPlaylistsWithSongs(userId) {
   const cacheKey = `playlists_${userId}`;
   const cachedPlaylists = getCache(cacheKey);
-
   if (cachedPlaylists) {
-    console.log(`✅ Using cached playlists for user ${userId}`);
     return cachedPlaylists;
   }
 
-  const { data: playlists, error } = await supabaseAdmin
+  const { data, error } = await supabaseAdmin
     .from("playlists")
-    .select(`
-      id, 
-      user_id, 
-      name, 
-      created_at, 
-      playlist_songs (song_id, songs (id, title))
-    `) // ✅ Correctly join `playlist_songs` with `songs`
+    .select(
+      `
+    id,
+    user_id,
+    name,
+    created_at,
+    playlist_songs ( song_id )
+  `
+    )
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error("❌ Supabase Error:", error);
-    throw new Error(error.message);
-  }
-
-  const formattedPlaylists = playlists.map(playlist => ({
-    ...playlist,
-    songs: playlist.playlist_songs
-      ? playlist.playlist_songs.map(song => ({
-          id: song.songs.id,  // ✅ Get song ID from `songs` table
-          title: song.songs.title // ✅ Get song title
-        }))
-      : [],
-  }));
-
-  setCache(cacheKey, formattedPlaylists); // ✅ Cache playlists
-  return formattedPlaylists;
-}
-
-/**
- * ✅ Fetch all songs for a given playlist (Checks Cache)
- */
-async function getPlaylistSongs(playlistId) {
-  const cacheKey = `playlist_songs_${playlistId}`;
-  const cachedSongs = getCache(cacheKey);
-
-  if (cachedSongs) {
-    console.log(`✅ Using cached songs for playlist ${playlistId}`);
-    return cachedSongs;
-  }
-
-  // console.log(`📥 Fetching songs for playlist ${playlistId}`);
-
-  const { data, error } = await supabaseAdmin
-    .from("playlist_songs")
-    .select("song_id")
-    .eq("playlist_id", playlistId);
 
   if (error) {
     console.error("❌ Supabase Fetch Error:", error.message);
     throw new Error(error.message);
   }
 
-  const songIds = data.map(entry => entry.song_id);
-  setCache(cacheKey, songIds); // ✅ Cache playlist songs
-  return songIds;
-}
+  // // Transform the data if necessary so that each playlist has a simple array of song IDs.
+  const playlists = data.map((playlist) => ({
+    id: playlist.id,
+    userId: playlist.user_id,
+    name: playlist.name,
+    created_at: playlist.created_at,
+    // Extract song_id from the nested playlist_songs array
+    songs: playlist.playlist_songs
+      ? playlist.playlist_songs.map((song) => song.song_id)
+      : [],
+  }));
 
+  // console.log(playlists);
+
+  setCache(cacheKey, playlists);
+
+  return playlists;
+}
 
 /**
  * ✅ Create a new playlist (Invalidates Cache)
@@ -91,7 +62,7 @@ async function createPlaylist(userId, name) {
     let newName = name.trim();
     let count = 1;
 
-    while (existingPlaylists.some(p => p.name === newName)) {
+    while (existingPlaylists.some((p) => p.name === newName)) {
       newName = `${name.trim()} (${count++})`;
     }
 
@@ -118,15 +89,19 @@ async function createPlaylist(userId, name) {
   }
 }
 
-
 /**
  * ✅ Add a song to a playlist (Invalidates Cache)
  */
-async function addSongToPlaylist(playlistId, songId) {
+async function addSongToPlaylist(playlistId, songId, userId) {
   const { data, error } = await supabaseAdmin
     .from("playlist_songs")
     .insert([{ playlist_id: playlistId, song_id: songId }])
     .select("*");
+
+  if (!userId) {
+    console.error("userId is undefined, cannot add song to playlist.");
+    return { error: "User not authenticated" };
+  }
 
   if (error) {
     console.error("❌ Supabase Insert Error:", error);
@@ -135,9 +110,7 @@ async function addSongToPlaylist(playlistId, songId) {
 
   console.log("✅ Song added successfully:", data);
 
-  // ✅ Invalidate cache for playlist & user's playlists
-  setCache(`playlist_songs_${playlistId}`, null);
-  setCache(`playlists_${data[0].user_id}`, null); // Ensure user cache is updated
+  removeCache(`playlists_${userId}`);
 
   return { data };
 }
@@ -145,13 +118,18 @@ async function addSongToPlaylist(playlistId, songId) {
 /**
  * ✅ Remove a song from a playlist (Invalidates Cache)
  */
-async function removeSongFromPlaylist(playlistId, songId) {
+async function removeSongFromPlaylist(playlistId, songId, userId) {
   const { data, error } = await supabaseAdmin
     .from("playlist_songs")
     .delete()
     .eq("playlist_id", playlistId)
     .eq("song_id", songId)
     .select();
+
+  if (!userId) {
+    console.error("userId is undefined, cannot remove song to playlist.");
+    return { error: "User not authenticated" };
+  }
 
   if (error) {
     console.error("❌ Supabase Delete Error:", error);
@@ -165,9 +143,7 @@ async function removeSongFromPlaylist(playlistId, songId) {
 
   console.log("✅ Song removed successfully:", data);
 
-  // ✅ Invalidate cache for playlist & user's playlists
-  setCache(`playlist_songs_${playlistId}`, null);
-  setCache(`playlists_${data[0].user_id}`, null);
+  removeCache(`playlists_${userId}`);
 
   return { data };
 }
@@ -188,7 +164,7 @@ async function renamePlaylist(playlistId, newName) {
   console.log("✅ Playlist renamed successfully.");
 
   // ✅ Invalidate cache for user's playlists
-  setCache(`playlists_${playlistId}`, null);
+  setCache(`playlists_${userId}`, null);
 
   return { message: "Playlist renamed successfully." };
 }
@@ -221,11 +197,10 @@ async function deletePlaylist(playlistId) {
 }
 // ✅ Export service functions
 module.exports = {
-  getUserPlaylists,
-  getPlaylistSongs,
   createPlaylist,
   addSongToPlaylist,
   removeSongFromPlaylist,
   renamePlaylist,
   deletePlaylist,
+  getUserPlaylistsWithSongs,
 };

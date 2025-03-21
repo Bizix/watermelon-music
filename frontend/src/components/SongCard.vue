@@ -243,7 +243,7 @@ export default {
           newPlaylistName.value = "";
           showNewPlaylistInput.value = false;
           newPlaylist.songs = Array.isArray(newPlaylist.songs) ? newPlaylist.songs : [];
-          const success = await addToPlaylist(newPlaylist.id, props.song.id);
+          const success = await addToPlaylist(newPlaylist.id, props.song.id, user.value.id);
           if (success) {
             console.log(`🎵 Added song ${props.song.id} to playlist ${newPlaylist.id}`);
             newPlaylist.songs.push(props.song.id);
@@ -261,7 +261,7 @@ export default {
       isPlaylistLoading.value = true;
 
       try {
-          const success = await addToPlaylist(playlistId, props.song.id);
+          const success = await addToPlaylist(playlistId, props.song.id, user.value.id);
           if (success) {
             const playlist = playlists.value.find(p => p.id === playlistId);
             if (playlist) {
@@ -277,8 +277,9 @@ export default {
 
       async function handleRemoveSong(playlistId) {
         isPlaylistLoading.value = true;
+
         try {
-          const success = await removeFromPlaylist(playlistId, props.song.id);
+          const success = await removeFromPlaylist(playlistId, props.song.id, user.value.id);
           if (success) {
             const playlist = playlists.value.find(p => p.id === playlistId);
             if (playlist) {
