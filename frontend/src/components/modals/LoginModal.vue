@@ -133,7 +133,14 @@ async function login() {
 
 // ✅ Google OAuth login
 async function loginWithGoogle() {
-  const { error } = await supabase.auth.signInWithOAuth({ provider: "google" });
+  const redirectUrl = process.env.NODE_ENV === 'production'
+    ? 'https://watermelon-music.vercel.app/'
+    : 'http://localhost:5173/';
+
+  const { error } = await supabase.auth.signInWithOAuth(
+    { provider: "google" },
+    { redirectTo: redirectUrl }
+  );
   if (error) {
     errorMessage.value = error.message;
   }
