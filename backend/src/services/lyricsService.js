@@ -191,7 +191,7 @@ async function scrapeLyricsFromGenius(url, title, artist, songId) {
     );
 
     await page.goto(url, { waitUntil: "networkidle2", timeout: 60000 });
-    await page.waitForSelector("[data-lyrics-container]", { timeout: 20000 });
+    await page.waitForSelector("[data-lyrics-container]", { timeout: 60000 });
 
     const rawLyrics = await page.$$eval(
       "[data-lyrics-container]",
