@@ -15,8 +15,9 @@ const app = express();
 
 // ✅ Middleware
 app.use(express.json());
-app.use(cors());
-app.use(helmet()); // ✅ Security headers
+app.use(cors({
+  origin: 'https://watermelon-music.vercel.app'
+}));app.use(helmet()); // ✅ Security headers
 app.use(morgan("dev")); // ✅ Request logging
 
 // ✅ API Routes
