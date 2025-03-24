@@ -248,10 +248,21 @@ async function scrapeBackupLyrics(title, artist, songId) {
   console.log(`🔗 Navigating to: ${melonUrl}`);
 
   const browser = await puppeteer.launch({
-    headless: "new",
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    headless: true,
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-blink-features=AutomationControlled",
+    ],
   });
   const page = await browser.newPage();
+
+  // Override the navigator.webdriver property
+  await page.evaluateOnNewDocument(() => {
+    Object.defineProperty(navigator, "webdriver", {
+      get: () => false,
+    });
+  });
 
   let lyrics = null;
   let engSaved = false; // ✅ Since this is a backup method, we set eng_saved to false
