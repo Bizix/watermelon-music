@@ -179,9 +179,14 @@ async function scrapeLyricsFromGenius(url, title, artist, songId) {
   console.log(`📜 Scraping lyrics from Genius: ${url}`);
 
   const browser = await puppeteer.launch({
-    headless: "new",
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    headless: true,
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-blink-features=AutomationControlled",
+    ],
   });
+
   const page = await browser.newPage();
   let lyrics = null;
 
@@ -190,17 +195,22 @@ async function scrapeLyricsFromGenius(url, title, artist, songId) {
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"
     );
 
+    // Remove the webdriver property
+    await page.evaluateOnNewDocument(() => {
+      Object.defineProperty(navigator, "webdriver", { get: () => false });
+    });
+
     await page.goto(url, { waitUntil: "networkidle2", timeout: 60000 });
 
     try {
-      await page.waitForSelector('[data-lyrics-container]', { timeout: 60000 });
+      await page.waitForSelector("[data-lyrics-container]", { timeout: 60000 });
     } catch (error) {
-      await page.screenshot({ path: 'error-screenshot.png' });
+      await page.screenshot({ path: "error-screenshot.png" });
       const htmlContent = await page.content();
       console.log(htmlContent);
       throw error;
     }
-    
+
     const rawLyrics = await page.$$eval(
       "[data-lyrics-container]",
       (containers) => containers.map((c) => c.innerText).join("\n")
