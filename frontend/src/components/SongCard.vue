@@ -1,9 +1,9 @@
 <template>
   <div class="song-card w-full flex flex-col p-4 shadow-lg border-t"
     :data-id="song.id" :data-song-id="song.melon_song_id">
-    <div class="flex items-center gap-4 w-full">
+    <div class="flex items-center sm:gap-4 w-full">
       <!-- ✅ Rank with Movement -->
-      <div class="flex items-center min-w-[50px] justify-center gap-1">
+      <div class="flex items-center sm:min-w-[30px] justify-center sm:gap-1">
         <span class="font-bold text-lg text-primary-500 pr-1">
           {{ song.rank }}
         </span>
@@ -22,13 +22,13 @@
         </span>
       </div>
       <!-- ✅ Album Art -->
-      <img :src="song.art" :alt="song.album" class="w-16 h-16 rounded-md object-cover border border-surface-400" />
+      <img :src="song.art" :alt="song.album" class="w-16 h-16 ml-1 mr-3 sm:m-0 rounded-md object-cover border border-surface-400" />
       <!-- ✅ Song Info -->
       <div class="flex flex-col flex-grow">
-        <p class="text-lg font-semibold text-surface-900">
+        <p class="text-sm sm:text-lg font-semibold text-surface-900">
           {{ song.title }}
         </p>
-        <p class="text-lg text-surface-800">
+        <p class="text-sm sm:text-lg text-surface-800">
           {{ song.artist }}
         </p>
         <p class="text-sm italic text-surface-600">
@@ -36,7 +36,7 @@
         </p>
       </div>
       <!-- ✅ Action Buttons -->
-      <div class="flex items-center gap-3">
+      <div class="flex flex-col sm:flex-row items-center sm:gap-3">
         <template v-for="(button, index) in actionButtons" :key="index">
           <a v-if="button.url" :href="button.url" target="_blank" class="text-xl" :class="button.color">
             <i :class="button.icon"></i>
