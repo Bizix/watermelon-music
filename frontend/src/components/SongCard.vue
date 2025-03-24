@@ -1,5 +1,5 @@
 <template>
-  <div class="song-card w-full flex flex-col p-4 shadow-lg border-t transition-colors"
+  <div class="song-card w-full flex flex-col p-4 shadow-lg border-t"
     :data-id="song.id" :data-song-id="song.melon_song_id">
     <div class="flex items-center gap-4 w-full">
       <!-- ✅ Rank with Movement -->
@@ -43,12 +43,12 @@
           </a>
         </template>
         <!-- ✅ Lyrics Button -->
-        <button @click="toggleExpand" class="px-3 py-1 text-sm font-medium rounded-lg cursor-pointer transition-colors bg-[var(--p-primary-color)] text-white hover:bg-[var(--p-primary-400)]">
+        <button @click="toggleExpand" class="px-3 py-1 text-sm font-medium rounded-lg cursor-pointer bg-[var(--p-primary-color)] text-white hover:bg-[var(--p-primary-400)]">
           Lyrics
         </button>
         <div class="relative">
           <!-- ✅ Add to Playlist Button -->
-          <button v-if="user" @click="togglePlaylistMenu($event)" class="text-slg font-medium rounded-lg cursor-pointer transition-colors text-[var(--p-primary-color)] hover:text-[var(--p-primary-400)]">
+          <button v-if="user" @click="togglePlaylistMenu($event)" class="text-slg font-medium rounded-lg cursor-pointer text-[var(--p-primary-color)] hover:text-[var(--p-primary-400)]">
             +
           </button>
           <!-- Playlist Dropdown Container -->

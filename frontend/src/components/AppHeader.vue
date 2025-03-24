@@ -9,9 +9,9 @@
     </h1>
 
     <!-- ✅ Controls Container -->
-    <!-- On mobile: static and below the header (mt-4).
-         On sm and above: absolute positioned in the top-right (mt-0, flex-row). -->
-    <div class="flex flex-col items-center gap-4 mt-4 sm:mt-0 sm:absolute sm:right-4 sm:top-0 sm:flex-row">
+    <!-- On mobile (default): displayed in normal flow under the header.
+         On sm and above: absolutely positioned in the top-right corner. -->
+    <div class="flex items-center gap-4 mt-2 sm:mt-0 sm:absolute sm:right-4 sm:top-0">
       <!-- Dark Mode Toggle Button -->
       <button
         @click="toggleDarkMode"
@@ -29,7 +29,7 @@
       <div class="relative" ref="menuRef">
         <button 
           @click="toggleUserMenu"
-          class="px-2 py-1 sm:px-4 sm:py-2 rounded-lg transition-all duration-300"
+          class="px-2 py-1 sm:px-4 sm:py-2 rounded-lg transition-all duration-500"
           :class="{
             'bg-[var(--p-primary-color)] text-white hover:bg-[var(--p-primary-400)]': !isDarkMode,
             'bg-[var(--p-surface-50)] text-white hover:bg-[var(--p-surface-100)]': isDarkMode
@@ -122,6 +122,7 @@
     />
   </div>
 </template>
+
 
   
   
