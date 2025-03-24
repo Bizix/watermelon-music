@@ -8,29 +8,28 @@
       WaterMelon Music
     </h1>
 
-    <!-- ✅ Right-side Controls -->
-    <div class="absolute right-4 top-0 flex items-center gap-4">
-
-         
-
-      <!-- ✅ Theme Toggle -->
+    <!-- ✅ Controls Container -->
+    <!-- On mobile: static and below the header (mt-4).
+         On sm and above: absolute positioned in the top-right (mt-0, flex-row). -->
+    <div class="flex flex-col items-center gap-4 mt-4 sm:mt-0 sm:absolute sm:right-4 sm:top-0 sm:flex-row">
+      <!-- Dark Mode Toggle Button -->
       <button
         @click="toggleDarkMode"
-        class="w-10 h-10 flex items-center justify-center rounded-lg transition-all duration-500"
+        class="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg transition-all duration-500"
         :class="{
           'bg-[var(--p-primary-color)] text-white hover:bg-[var(--p-primary-400)]': !isDarkMode,
           'bg-[var(--p-surface-50)] text-white hover:bg-[var(--p-surface-100)]': isDarkMode
         }"
       >
-        <i v-if="isDarkMode" class="pi pi-moon text-lg"></i>
-        <i v-else class="pi pi-sun text-lg"></i>
+        <i v-if="isDarkMode" class="pi pi-moon text-base sm:text-lg"></i>
+        <i v-else class="pi pi-sun text-base sm:text-lg"></i>
       </button>
-      
-      <!-- ✅ Menu -->
+
+      <!-- Menu Button -->
       <div class="relative" ref="menuRef">
         <button 
           @click="toggleUserMenu"
-          class="px-4 py-2 rounded-lg transition-all duration-300"
+          class="px-2 py-1 sm:px-4 sm:py-2 rounded-lg transition-all duration-300"
           :class="{
             'bg-[var(--p-primary-color)] text-white hover:bg-[var(--p-primary-400)]': !isDarkMode,
             'bg-[var(--p-surface-50)] text-white hover:bg-[var(--p-surface-100)]': isDarkMode
@@ -59,7 +58,7 @@
             {{ buttonLabel }}
           </button>
           <button 
-          @click="openModal(SettingsModal)"
+            @click="openModal(SettingsModal)"
             class="block w-full text-left px-3 py-2 text-sm"
             :class="{
               'hover:bg-gray-300': !isDarkMode,
@@ -115,11 +114,11 @@
 
     <!-- ✅ Modals -->
     <Modal 
-        v-if="activeModalComponent"
-        :modalComponent="activeModalComponent"
-        :modalProps="activeModalProps"
-        @close="closeModal"
-        @closeAll="logout"
+      v-if="activeModalComponent"
+      :modalComponent="activeModalComponent"
+      :modalProps="activeModalProps"
+      @close="closeModal"
+      @closeAll="logout"
     />
   </div>
 </template>

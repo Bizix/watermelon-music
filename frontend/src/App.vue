@@ -46,10 +46,11 @@ provide("playlists", playlists); // ✅ Provide playlists
 provide("isDarkMode", isDarkMode);
 provide("toggleDarkMode", toggleDarkMode);
 </script>
-
+//test
 <template>
-  <div class="relative min-h-screen">
-    <div class="chart-container pt-3 w-full mx-auto flex flex-col h-screen transition-colors">
+  <div id="app" data-v-app class="min-h-screen flex justify-center relative">
+    <!-- This container fills 100vw on small screens and is capped at 60.625rem on larger screens -->
+    <div class="w-[100vw] max-w-[60.7rem] mx-auto chart-container pt-3 w-full mx-auto flex flex-col h-screen">
       <AppHeader />
       <router-view />
     </div>

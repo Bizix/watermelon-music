@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
-import { supabase } from "@/lib/supabaseClient"; 
+import { supabase } from "./lib/supabaseClient";
+
 
 import ChartView from "@/views/ChartView.vue";
 import PlaylistsView from "@/views/PlaylistsView.vue";

@@ -1,5 +1,5 @@
 <template>
-  <div class="p-2 w-full">
+  <div class="p-2">
     <div class="flex flex-wrap justify-center gap-2 px-2 overflow-hidden">
       <button
         v-for="(label, code) in genreOptions"
