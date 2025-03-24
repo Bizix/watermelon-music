@@ -2,20 +2,18 @@
   <!-- ✅ Header Section -->
   <div class="relative flex flex-col items-center my-6">
     <h1 
-      class="text-3xl font-extrabold text-center"
+      class="text-3xl pb-2 font-extrabold text-center"
       :style="{ color: 'var(--p-primary-color)' }"
     >
       WaterMelon Music
     </h1>
 
     <!-- ✅ Controls Container -->
-    <!-- On mobile (default): displayed in normal flow under the header.
-         On sm and above: absolutely positioned in the top-right corner. -->
-    <div class="flex items-center gap-4 mt-2 sm:mt-0 sm:absolute sm:right-4 sm:top-0">
+    <div class="flex items-center gap-4 mt-4 sm:mt-0 sm:absolute sm:right-4 sm:top-0">
       <!-- Dark Mode Toggle Button -->
       <button
         @click="toggleDarkMode"
-        class="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg transition-all duration-500"
+        class="w-10 h-10 flex items-center justify-center rounded-lg transition-all duration-500"
         :class="{
           'bg-[var(--p-primary-color)] text-white hover:bg-[var(--p-primary-400)]': !isDarkMode,
           'bg-[var(--p-surface-50)] text-white hover:bg-[var(--p-surface-100)]': isDarkMode
@@ -29,7 +27,7 @@
       <div class="relative" ref="menuRef">
         <button 
           @click="toggleUserMenu"
-          class="px-2 py-1 sm:px-4 sm:py-2 rounded-lg transition-all duration-500"
+          class="px-4 py-2 rounded-lg transition-all duration-500"
           :class="{
             'bg-[var(--p-primary-color)] text-white hover:bg-[var(--p-primary-400)]': !isDarkMode,
             'bg-[var(--p-surface-50)] text-white hover:bg-[var(--p-surface-100)]': isDarkMode

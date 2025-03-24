@@ -309,6 +309,9 @@
   .mb-1 {
     margin-bottom: calc(var(--spacing) * 1);
   }
+  .mb-2 {
+    margin-bottom: calc(var(--spacing) * 2);
+  }
   .mb-3 {
     margin-bottom: calc(var(--spacing) * 3);
   }
@@ -611,6 +614,12 @@
   .pr-1 {
     padding-right: calc(var(--spacing) * 1);
   }
+  .pb-2 {
+    padding-bottom: calc(var(--spacing) * 2);
+  }
+  .pb-4 {
+    padding-bottom: calc(var(--spacing) * 4);
+  }
   .pl-2 {
     padding-left: calc(var(--spacing) * 2);
   }
@@ -676,6 +685,9 @@
   }
   .text-\[var\(--p-primary-color\)\] {
     color: var(--p-primary-color);
+  }
+  .text-\[var\(--p-text-primary\)\] {
+    color: var(--p-text-primary);
   }
   .text-\[var\(--p-text-secondary\)\] {
     color: var(--p-text-secondary);
@@ -1024,6 +1036,16 @@
     @media (width >= 40rem) {
       font-size: var(--text-lg);
       line-height: var(--tw-leading, var(--text-lg--line-height));
+    }
+  }
+  .dark\:bg-\[var\(--p-surface-700\)\] {
+    @media (prefers-color-scheme: dark) {
+      background-color: var(--p-surface-700);
+    }
+  }
+  .dark\:text-white {
+    @media (prefers-color-scheme: dark) {
+      color: var(--color-white);
     }
   }
   .dark\:hover\:bg-\[var\(--p-surface-500\)\] {

@@ -1,6 +1,29 @@
 <template>
   <div class="p-2">
-    <div class="flex flex-wrap justify-center gap-2 px-2 overflow-hidden">
+    <!-- Dropdown for mobile screens -->
+    <select
+      class="block sm:hidden w-full mx-auto p-2 border rounded"
+      :value="selectedGenre"
+      @change="emitGenre($event.target.value)"
+      :disabled="isLoading"
+      :style="{
+          backgroundColor:'var(--p-surface-100)',
+          color: 'var(--p-text-primary)',
+          opacity: isLoading ? 0.5 : 1,
+          cursor: isLoading ? 'not-allowed' : 'pointer'
+        }"
+    >
+      <option 
+        v-for="(label, code) in genreOptions" 
+        :key="code" 
+        :value="code"
+      >
+        {{ label }}
+      </option>
+    </select>
+
+    <!-- Button group for larger screens -->
+    <div class="hidden sm:flex flex-wrap justify-center gap-2 px-2 overflow-hidden">
       <button
         v-for="(label, code) in genreOptions"
         :key="code"
