@@ -13,12 +13,27 @@ const playlistRoutes = require("./routes/playlistRoutes");
 
 const app = express();
 
+const allowedOrigins = [
+  'https://watermelon-music.vercel.app',
+  'http://localhost:5173'
+];
+
 // ✅ Middleware
 app.use(express.json());
-app.use(cors({
-  origin: 'https://watermelon-music.vercel.app'
-}));app.use(helmet()); // ✅ Security headers
+app.use(helmet()); // ✅ Security headers
 app.use(morgan("dev")); // ✅ Request logging
+
+app.use(cors({
+  origin: function(origin, callback) {
+    // allow requests with no origin (like curl or mobile apps)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  }
+}));
 
 // ✅ API Routes
 app.use("/api", scraperRoutes);
