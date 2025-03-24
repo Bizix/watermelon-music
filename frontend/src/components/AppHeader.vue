@@ -48,15 +48,15 @@
             'bg-[var(--p-surface-100)] text-white': isDarkMode
           }"
         >
-          <button 
-            @click="handleMenuClick(goToPlaylists)" 
+          <button
+            @click="handleMenuClick(toggleRoute)"
             class="block w-full text-left px-3 py-2 text-sm hover:rounded-t-lg"
             :class="{
               'hover:bg-gray-300': !isDarkMode,
               'dark:hover:bg-[var(--p-surface-500)]': isDarkMode
             }"
           >
-            Playlists
+            {{ buttonLabel }}
           </button>
           <button 
           @click="openModal(SettingsModal)"
@@ -127,10 +127,10 @@
   
   
   <script setup>
-  import { ref, onMounted, onUnmounted, markRaw, inject } from "vue";
+  import { ref, onMounted, onUnmounted, markRaw, inject, computed } from "vue";
   import { supabase } from "@/lib/supabaseClient";
   import emitter from "@/lib/emitter";
-  import { useRouter } from 'vue-router';
+  import { useRouter, useRoute } from 'vue-router';
 
   import Modal from "@/components/Modal.vue";
   import LoginModal from "@/components/modals/LoginModal.vue";
@@ -140,6 +140,8 @@
 
 
   const router = useRouter();
+  const route = useRoute();
+
   const isDarkMode = inject("isDarkMode");
   const toggleDarkMode = inject("toggleDarkMode");
   
@@ -221,10 +223,16 @@ async function handleAccountDeletion() {
   }
 }
 
+const buttonLabel = computed(() => route.path === '/playlists' ? 'Charts' : 'Playlists');
 
-  function goToPlaylists() {
-    router.push('/playlists');
-    showUserMenu.value = false;
-  }
+function toggleRoute() {
+      if (route.path === '/playlists') {
+        router.push('/');
+      } else {
+        router.push('/playlists');
+      }
+      showUserMenu.value = false;
+    }
+
   </script>
   
