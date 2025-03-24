@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL; // ✅ Ensure this is set in your .env file
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL; 
 
 // ✅ Define a type for the lyrics response
 interface LyricsResponse {
