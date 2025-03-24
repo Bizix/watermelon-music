@@ -191,8 +191,16 @@ async function scrapeLyricsFromGenius(url, title, artist, songId) {
     );
 
     await page.goto(url, { waitUntil: "networkidle2", timeout: 60000 });
-    await page.waitForSelector("[data-lyrics-container]", { timeout: 60000 });
 
+    try {
+      await page.waitForSelector('[data-lyrics-container]', { timeout: 60000 });
+    } catch (error) {
+      await page.screenshot({ path: 'error-screenshot.png' });
+      const htmlContent = await page.content();
+      console.log(htmlContent);
+      throw error;
+    }
+    
     const rawLyrics = await page.$$eval(
       "[data-lyrics-container]",
       (containers) => containers.map((c) => c.innerText).join("\n")
