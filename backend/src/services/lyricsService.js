@@ -1,4 +1,10 @@
-const puppeteer = require("puppeteer");
+// const puppeteer = require("puppeteer");
+
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+puppeteer.use(StealthPlugin());
+const { launch } = require('puppeteer-real-browser');
+
 const axios = require("axios");
 const pool = require("../config/db");
 const { getCache, setCache } = require("./cacheService");
@@ -178,16 +184,17 @@ async function searchGeniusLyrics(title, artist, songId) {
 async function scrapeLyricsFromGenius(url, title, artist, songId) {
   console.log(`📜 Scraping lyrics from Genius: ${url}`);
 
-  const browser = await puppeteer.launch({
-    headless: true,
+  const browser = await launch({
+    headless: true, // You can try headful for debugging
     args: [
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-      "--disable-blink-features=AutomationControlled",
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-blink-features=AutomationControlled'
     ],
   });
 
   const page = await browser.newPage();
+
   let lyrics = null;
 
   try {
@@ -205,11 +212,9 @@ async function scrapeLyricsFromGenius(url, title, artist, songId) {
     try {
       await page.waitForSelector("[data-lyrics-container]", { timeout: 60000 });
     } catch (error) {
-      await page.screenshot({ path: "error-screenshot.png" });
-      const htmlContent = await page.content();
-      console.log(htmlContent);
-      throw error;
-    }
+    await page.screenshot({ path: 'error-screenshot.png' });
+    console.error('Error waiting for selector:', error);
+  }
 
     const rawLyrics = await page.$$eval(
       "[data-lyrics-container]",

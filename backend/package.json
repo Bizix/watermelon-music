@@ -12,7 +12,10 @@
     "morgan": "^1.10.0",
     "node-cron": "^3.0.3",
     "pg": "^8.13.3",
-    "puppeteer": "^24.2.1"
+    "puppeteer": "^24.2.1",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "puppeteer-real-browser": "^1.4.2"
   },
   "name": "backend",
   "version": "1.0.0",
