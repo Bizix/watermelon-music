@@ -43,6 +43,10 @@ app.use("/api", deletionRoutes);
 app.use("/api/lyrics", lyricsRoutes); 
 app.use("/api/playlistRoutes", playlistRoutes);
 
+if (!process.env.CHROME_PATH) {
+  process.env.CHROME_PATH = require('puppeteer').executablePath();
+}
+
 // ✅ Health Check Route
 app.get("/", (req, res) => {
   res.send("✅ Melon Music App API is running!");
