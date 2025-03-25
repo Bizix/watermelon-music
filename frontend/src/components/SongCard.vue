@@ -43,7 +43,7 @@
           </a>
         </template>
         <!-- ✅ Lyrics Button -->
-        <button @click="toggleExpand" class="px-3 py-1 text-sm font-medium rounded-lg cursor-pointer bg-[var(--p-primary-color)] text-white hover:bg-[var(--p-primary-400)]">
+        <button @click="toggleExpand" hidden class="px-3 py-1 text-sm font-medium rounded-lg cursor-pointer bg-[var(--p-primary-color)] text-white hover:bg-[var(--p-primary-400)]">
           Lyrics
         </button>
         <div class="relative">
