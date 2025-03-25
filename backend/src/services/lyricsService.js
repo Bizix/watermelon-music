@@ -1,10 +1,4 @@
-// const puppeteer = require("puppeteer");
-
-const puppeteer = require('puppeteer-extra');
-const StealthPlugin = require('puppeteer-extra-plugin-stealth');
-puppeteer.use(StealthPlugin());
-const { launch } = require('puppeteer-real-browser');
-
+const { connect } = require("puppeteer-real-browser");
 const axios = require("axios");
 const pool = require("../config/db");
 const { getCache, setCache } = require("./cacheService");
@@ -97,28 +91,25 @@ async function getLyrics(title, artist, songId) {
 function cleanLyrics(rawLyrics) {
   return rawLyrics
     .split("\n")
-    .reduce((acc, line, index, arr) => {
+    .reduce((acc, line) => {
       line = line.trim();
 
       // ✅ If a line starts with a comma, attach it to the previous line
       if (line.startsWith(",") && acc.length > 0) {
-        acc[acc.length - 1] += line; // Move the comma to the previous line
+        acc[acc.length - 1] += line;
         return acc;
       }
 
-      // ✅ Ensure a blank line exists between verses, choruses, and other sections
-      if (
-        acc.length > 0 &&
-        line.match(/^\[.*\]$/) // If line is a section header like [Verse 1: Artist]
-      ) {
-        acc.push(""); // Add a blank line before it
+      // ✅ Add a blank line before section headers (e.g. [Verse 1: Artist])
+      if (acc.length > 0 && line.match(/^\[.*\]$/)) {
+        acc.push("");
       }
 
-      acc.push(line); // Add the line normally
+      acc.push(line);
       return acc;
     }, [])
-    .join("\n") // ✅ Preserve correct newlines
-    .replace(/\n{3,}/g, "\n\n") // ✅ Ensure no excessive blank lines
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
 
@@ -126,6 +117,7 @@ function cleanLyrics(rawLyrics) {
  * ✅ Search for Genius lyrics using Google Search API
  * @param {string} title - Song title
  * @param {string} artist - Artist name
+ * @param {string} songId - Melon song ID
  * @returns {Promise<string|null>} - Scraped lyrics or null
  */
 async function searchGeniusLyrics(title, artist, songId) {
@@ -146,7 +138,6 @@ async function searchGeniusLyrics(title, artist, songId) {
     );
 
     const items = response.data.items || [];
-
     console.log(
       "🔗 Google API results:",
       items.map((item) => item.link)
@@ -177,23 +168,32 @@ async function searchGeniusLyrics(title, artist, songId) {
 }
 
 /**
- * ✅ Scrape Genius Lyrics Page
+ * ✅ Scrape Genius Lyrics Page using puppeteer-real-browser
  * @param {string} url - Genius lyrics page URL
+ * @param {string} title - Song title
+ * @param {string} artist - Artist name
+ * @param {string} songId - Melon song ID
  * @returns {Promise<string|null>} - Extracted lyrics
  */
 async function scrapeLyricsFromGenius(url, title, artist, songId) {
   console.log(`📜 Scraping lyrics from Genius: ${url}`);
 
-  const browser = await launch({
-    headless: true, // You can try headful for debugging
+  const { browser, page } = await connect({
+    headless: true,
     args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-blink-features=AutomationControlled'
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-blink-features=AutomationControlled"
     ],
+    // Use default customConfig; add any overrides if needed.
+    customConfig: {},
+    turnstile: true,
+    connectOption: { defaultViewport: null },
+    disableXvfb: false,
+    ignoreAllFlags: false,
+    // Optionally, add plugins if needed:
+    // plugins: [require("puppeteer-extra-plugin-stealth")()],
   });
-
-  const page = await browser.newPage();
 
   let lyrics = null;
 
@@ -202,7 +202,7 @@ async function scrapeLyricsFromGenius(url, title, artist, songId) {
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36"
     );
 
-    // Remove the webdriver property
+    // Override navigator.webdriver property
     await page.evaluateOnNewDocument(() => {
       Object.defineProperty(navigator, "webdriver", { get: () => false });
     });
@@ -212,21 +212,22 @@ async function scrapeLyricsFromGenius(url, title, artist, songId) {
     try {
       await page.waitForSelector("[data-lyrics-container]", { timeout: 60000 });
     } catch (error) {
-    await page.screenshot({ path: 'error-screenshot.png' });
-    console.error('Error waiting for selector:', error);
-  }
+      await page.screenshot({ path: "error-screenshot.png" });
+      const htmlContent = await page.content();
+      console.log(htmlContent);
+      throw error;
+    }
 
     const rawLyrics = await page.$$eval(
       "[data-lyrics-container]",
       (containers) => containers.map((c) => c.innerText).join("\n")
     );
 
-    // ✅ Clean and format the lyrics before inserting into the database
-    lyrics = cleanLyrics(rawLyrics); // ✅ Apply fix before saving
+    // Clean and format the lyrics
+    lyrics = cleanLyrics(rawLyrics);
 
     if (lyrics) {
       setCache(`lyrics_${songId}`, lyrics);
-
       const client = await pool.connect();
       await client.query(
         `INSERT INTO song_lyrics (song_id, lyrics, eng_saved) 
@@ -246,31 +247,31 @@ async function scrapeLyricsFromGenius(url, title, artist, songId) {
   return lyrics;
 }
 
+/**
+ * ✅ Scrape backup lyrics from Melon using puppeteer-real-browser
+ * @param {string} title - Song title
+ * @param {string} artist - Artist name
+ * @param {string} songId - Melon song ID
+ * @returns {Promise<string|null>} - Extracted lyrics
+ */
 async function scrapeBackupLyrics(title, artist, songId) {
   console.log(`📜 Scraping backup lyrics from Melon for song ID: ${songId}`);
 
   const melonUrl = `https://www.melon.com/song/detail.htm?songId=${songId}`;
   console.log(`🔗 Navigating to: ${melonUrl}`);
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: [
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-      "--disable-blink-features=AutomationControlled",
-    ],
-  });
-  const page = await browser.newPage();
-
-  // Override the navigator.webdriver property
-  await page.evaluateOnNewDocument(() => {
-    Object.defineProperty(navigator, "webdriver", {
-      get: () => false,
-    });
+  const { browser, page } = await connect({
+    headless: true, // You can set headless to false for debugging
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    customConfig: {},
+    turnstile: true,
+    connectOption: { defaultViewport: null },
+    disableXvfb: false,
+    ignoreAllFlags: false,
   });
 
   let lyrics = null;
-  let engSaved = false; // ✅ Since this is a backup method, we set eng_saved to false
+  let engSaved = false; // Backup method; set eng_saved to false
 
   try {
     await page.setUserAgent(
@@ -279,18 +280,16 @@ async function scrapeBackupLyrics(title, artist, songId) {
 
     console.log(`🚀 Navigating to Melon song page...`);
     await page.goto(melonUrl, { waitUntil: "networkidle2", timeout: 60000 });
-
     await page.waitForSelector(".lyric#d_video_summary", { timeout: 20000 });
-
     console.log(`🔍 Looking for lyrics container...`);
 
-    // ✅ Extract lyrics from Melon page
+    // Extract lyrics from Melon page
     const rawLyrics = await page.$eval(
       ".lyric#d_video_summary",
       (el) => el.innerText
     );
 
-    lyrics = cleanLyrics(rawLyrics); // ✅ Apply cleaning function
+    lyrics = cleanLyrics(rawLyrics);
 
     if (lyrics) {
       console.log(`✅ Successfully scraped Melon lyrics!`);
@@ -305,7 +304,7 @@ async function scrapeBackupLyrics(title, artist, songId) {
     await browser.close();
   }
 
-  // ✅ Store in the database
+  // Store in the database
   let client;
   try {
     client = await pool.connect();
@@ -335,5 +334,6 @@ async function scrapeBackupLyrics(title, artist, songId) {
 
   return lyrics;
 }
+
 // ✅ Export functions
 module.exports = { getLyrics, scrapeLyricsFromGenius };
