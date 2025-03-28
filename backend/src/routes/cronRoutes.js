@@ -1,7 +1,13 @@
 const express = require("express");
 const router = express.Router();
-const { getLastGenreIndex, saveGenreIndex } = require("../services/rotationService");
-const { shouldScrapeGenre, getRankings } = require("../services/rankingsService");
+const {
+  getLastGenreIndex,
+  saveGenreIndex,
+} = require("../services/rotationService");
+const {
+  shouldScrapeGenre,
+  getRankings,
+} = require("../services/rankingsService");
 const { scrapeAndSaveGenre } = require("../services/scraperService");
 
 const genreMap = {
@@ -25,9 +31,11 @@ const genreMap = {
 const genreCodes = Object.keys(genreMap);
 
 router.get("/cron", async (req, res) => {
-    if (req.query.secret !== process.env.CRON_SECRET) {
-        return res.status(401).json({ error: "Unauthorized" });
-      }
+  if (req.query.secret !== process.env.CRON_SECRET) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  res.status(202).json({ message: "🕒 Scraping started in background" });
 
   const lastIndex = await getLastGenreIndex();
   const genreCode = genreCodes[lastIndex];
@@ -53,7 +61,9 @@ router.get("/cron", async (req, res) => {
     console.error("❌ Error in cron route:", err);
     res.status(500).json({ error: "Internal server error" });
   }
-  console.log(`[CRON] Processed genre ${genreCode} at ${new Date().toISOString()}`);
+  console.log(
+    `[CRON] Processed genre ${genreCode} at ${new Date().toISOString()}`
+  );
 });
 
 module.exports = router;
