@@ -56,10 +56,8 @@ router.get("/cron", async (req, res) => {
     const nextIndex = (lastIndex + 1) % genreCodes.length;
     await saveGenreIndex(nextIndex);
 
-    res.status(200).json({ message: `✅ Processed ${genreName}` });
   } catch (err) {
     console.error("❌ Error in cron route:", err);
-    res.status(500).json({ error: "Internal server error" });
   }
   console.log(`[CRON] ✅ Finished genre: ${genreCode}`);
 });
