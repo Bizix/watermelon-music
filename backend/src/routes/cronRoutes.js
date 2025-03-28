@@ -61,9 +61,7 @@ router.get("/cron", async (req, res) => {
     console.error("❌ Error in cron route:", err);
     res.status(500).json({ error: "Internal server error" });
   }
-  console.log(
-    `[CRON] Processed genre ${genreCode} at ${new Date().toISOString()}`
-  );
+  console.log(`[CRON] ✅ Finished genre: ${genreCode}`);
 });
 
 module.exports = router;
