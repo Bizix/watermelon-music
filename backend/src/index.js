@@ -10,6 +10,7 @@ const youtubeRoutes = require("./routes/youtubeRoutes");
 const lyricsRoutes = require("./routes/lyricsRoutes");
 const deletionRoutes = require ("./routes/deletionRoutes.js"); 
 const playlistRoutes = require("./routes/playlistRoutes");
+const cronRoutes = require("./routes/cronRoutes");
 
 const app = express();
 
@@ -36,6 +37,7 @@ app.use(cors({
 }));
 
 // ✅ API Routes
+app.use("/api", cronRoutes);
 app.use("/api", scraperRoutes);
 app.use("/api", rankingsRoutes);
 app.use("/api", youtubeRoutes);
