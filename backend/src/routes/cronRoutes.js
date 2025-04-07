@@ -57,7 +57,7 @@ router.get("/cron", async (req, res) => {
     await saveGenreIndex(nextIndex);
 
   } catch (err) {
-    console.error("❌ Error in cron route:", err);
+    console.error("❌ Error in cron route:", err.message);
   }
   console.log(`[CRON] ✅ Finished genre: ${genreCode}`);
 });

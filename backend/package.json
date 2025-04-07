@@ -9,6 +9,7 @@
     "fast-levenshtein": "^3.0.0",
     "helmet": "^8.0.0",
     "ioredis": "^5.5.0",
+    "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
     "node-cron": "^3.0.3",
     "pg": "^8.13.3",
@@ -21,7 +22,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "prestart": "npx puppeteer browsers install chrome",
+    "prestart": "npx browsers install chrome",
     "start": "node src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

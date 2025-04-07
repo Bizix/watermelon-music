@@ -84,9 +84,22 @@
     // });
 
     // Then, delete the user account
+
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    const accessToken = sessionData?.session?.access_token;
+
+    if (!accessToken) {
+      console.error("❌ No access token found");
+      isDeleting.value = false;
+      return;
+    }
+
     const response = await fetch(`${API_BASE_URL}/api/delete-user`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
       body: JSON.stringify({ userId: user.id }),
     });
 

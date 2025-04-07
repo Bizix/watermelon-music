@@ -234,17 +234,18 @@ export default {
     const actionButtons = computed(() => [
       props.song.youtube_url && {
         url: `https://www.youtube.com/watch?v=${props.song.youtube_url}`,
-        icon: "pi pi-youtube",
-        color: "text-red-500 hover:text-red-600"
+        icon: "fab fa-youtube fa-lg",
+        color: "text-red-500 hover:text-red-600",
+        class: "text-[20px] leading-[20px] min-height-[20px]"
       },
       props.song.apple_music_url && {
         url: props.song.apple_music_url,
-        icon: "pi pi-apple",
+        icon: "pi pi-apple fa-lg",
         color: "text-gray-300 hover:text-gray-400"
       },
       props.song.spotify_url && {
         url: `https://open.spotify.com/track/${props.song.spotify_url}`,
-        icon: "fab fa-spotify",
+        icon: "fab fa-spotify fa-lg",
         color: "text-green-400 hover:text-green-500"
       }
     ].filter(Boolean));
