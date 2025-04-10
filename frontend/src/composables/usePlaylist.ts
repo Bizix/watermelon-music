@@ -1,6 +1,14 @@
 import { ref } from "vue";
 import { API_BASE_URL } from "../config";
 import { fetchPlaylists } from "../api/fetchPlaylists";
+import { supabase } from "@/lib/supabaseClient";
+
+async function getAccessToken(): Promise<string | null> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  return session?.access_token || null;
+}
 
 interface Playlist {
   id: string;
@@ -21,7 +29,7 @@ export function usePlaylist() {
     errorMessage.value = "";
 
     try {
-      playlists.value = await fetchPlaylists(userId); // ✅ Uses fetchPlaylists from api/
+      playlists.value = await fetchPlaylists(); // ✅ Uses fetchPlaylists from api/
     } catch (error) {
       errorMessage.value = "An error occurred while fetching playlists.";
     } finally {
@@ -30,29 +38,41 @@ export function usePlaylist() {
   }
 
   // ✅ Create a new playlist
-  async function createPlaylist(userId: string, name: string): Promise<Playlist | void> {
-    if (!userId || !name.trim()) return;
+  async function createPlaylist(name: string): Promise<Playlist | void> {
+    if (!name.trim()) return;
 
     isLoading.value = true;
     errorMessage.value = "";
 
+    const token = await getAccessToken();
+    if (!token) {
+      errorMessage.value = "User not authenticated.";
+      return;
+    }
+
     try {
-      const response = await fetch(`${API_BASE_URL}/api/playlistRoutes/create`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, name }),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/api/playlistRoutes/create`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ name }),
+        }
+      );
 
       const result: Playlist = await response.json();
 
       if (!response.ok || (result as { error?: string }).error) {
-        errorMessage.value = (result as { error?: string }).error || "Failed to create playlist.";
+        errorMessage.value =
+          (result as { error?: string }).error || "Failed to create playlist.";
         return;
       }
 
       return result;
     } catch (error) {
-      console.error("❌ Error creating playlist:", error);
       errorMessage.value = "An error occurred while creating the playlist.";
     } finally {
       isLoading.value = false;
@@ -60,18 +80,33 @@ export function usePlaylist() {
   }
 
   // ✅ Add a song to a playlist
-  async function addToPlaylist(playlistId: string, songId: string,  userId: string): Promise<boolean | void> {    
-    if (!playlistId || !songId || !userId) return;
+  async function addToPlaylist(
+    playlistId: string,
+    songId: string
+  ): Promise<boolean | void> {
+    if (!playlistId || !songId) return;
 
     isLoading.value = true;
     errorMessage.value = "";
 
+    const token = await getAccessToken();
+    if (!token) {
+      errorMessage.value = "User not authenticated.";
+      return;
+    }
+
     try {
-      const response = await fetch(`${API_BASE_URL}/api/playlistRoutes/add-song`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ playlistId, songId, userId }),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/api/playlistRoutes/add-song`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ playlistId, songId }),
+        }
+      );
 
       if (!response.ok) {
         errorMessage.value = "Error adding song to playlist.";
@@ -87,18 +122,33 @@ export function usePlaylist() {
   }
 
   // ✅ Remove a song from a playlist
-  async function removeFromPlaylist(playlistId: string, songId: string, userId: string): Promise<boolean | void> {
-    if (!playlistId || !songId || !userId) return;
+  async function removeFromPlaylist(
+    playlistId: string,
+    songId: string
+  ): Promise<boolean | void> {
+    if (!playlistId || !songId) return;
 
     isLoading.value = true;
     errorMessage.value = "";
 
+    const token = await getAccessToken();
+    if (!token) {
+      errorMessage.value = "User not authenticated.";
+      return;
+    }
+
     try {
-      const response = await fetch(`${API_BASE_URL}/api/playlistRoutes/remove-song`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ playlistId, songId,  userId }),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/api/playlistRoutes/remove-song`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ playlistId, songId }),
+        }
+      );
 
       if (!response.ok) {
         errorMessage.value = "Error removing song from playlist.";

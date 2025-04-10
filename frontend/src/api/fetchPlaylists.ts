@@ -1,6 +1,5 @@
-import axios from "axios";
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL; // ✅ Ensure this is set in your .env file
+import { supabase } from "@/lib/supabaseClient";
+import { API_BASE_URL } from "../config";
 
 // ✅ Define a type for Playlist
 interface Playlist {
@@ -11,16 +10,32 @@ interface Playlist {
   songs: string[];
 }
 
-export async function fetchPlaylists(userId: string): Promise<Playlist[]> {
+export async function fetchPlaylists(): Promise<Playlist[]> {
   try {
-    const response = await axios.get<Playlist[]>(
-      `${API_BASE_URL}/api/playlistRoutes`,
-      {
-        params: { userId },
-      }
-    );
-    // Ensure each playlist has a songs array
-    return response.data.map((playlist) => ({
+    // 🔐 Get access token
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+
+    if (!token) {
+      console.error("❌ No Supabase token found");
+      return [];
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/playlistRoutes`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      console.error("❌ Error fetching playlists:", err);
+      return [];
+    }
+
+    const playlists: Playlist[] = await response.json();
+
+    return playlists.map((playlist) => ({
       ...playlist,
       songs: playlist.songs || [],
     }));

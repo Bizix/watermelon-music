@@ -1,5 +1,7 @@
 const express = require("express");
-const {  getUserPlaylistsWithSongs,
+const verifySupabaseUser = require("../middlewares/verifySupabaseUser");
+const {
+  getUserPlaylistsWithSongs,
   createPlaylist,
   addSongToPlaylist,
   removeSongFromPlaylist,
@@ -8,12 +10,13 @@ const {  getUserPlaylistsWithSongs,
 } = require("../services/playlistService");
 
 const router = express.Router();
+router.use(verifySupabaseUser);
 
 /**
  * ✅ Get all playlists for a user with songs
  */
 router.get("/", async (req, res) => {
-  const { userId } = req.query;
+  const userId = req.authenticatedUserId;
 
   if (!userId) {
     return res.status(400).json({ error: "Missing userId parameter" });
@@ -35,11 +38,11 @@ router.get("/", async (req, res) => {
 router.post("/create", async (req, res) => {
   console.log("📥 Incoming request to /create:", req.body);
 
-  const { userId, name } = req.body;
+  const userId = req.authenticatedUserId;
+  const { name } = req.body;
 
-  if (!userId || !name || !name.trim()) {
-    console.log("❌ Invalid data received:", { userId, name });
-    return res.status(400).json({ error: "Invalid data." });
+  if (!name || !name.trim()) {
+    return res.status(400).json({ error: "Invalid playlist name." });
   }
 
   try {
@@ -49,7 +52,6 @@ router.post("/create", async (req, res) => {
     console.error("❌ Error creating playlist:", error.message);
     res.status(500).json({ error: error.message });
   }
-
 });
 
 /**
@@ -57,13 +59,12 @@ router.post("/create", async (req, res) => {
  */
 router.post("/add-song", async (req, res) => {
   try {
-    const { playlistId, songId, userId } = req.body;
+    const userId = req.authenticatedUserId;
+    const { playlistId, songId } = req.body;
 
-    if (!playlistId || !songId || !userId) {
-      console.error("❌ Missing parameters:", { playlistId, songId, userId });
+    if (!playlistId || !songId) {
       return res.status(400).json({ error: "Missing playlistId or songId" });
     }
-    
 
     const response = await addSongToPlaylist(playlistId, songId, userId);
     res.json(response);
@@ -76,17 +77,16 @@ router.post("/add-song", async (req, res) => {
  * ✅ Remove a Song from a Playlist
  */
 router.post("/remove-song", async (req, res) => {
-
   try {
-    const { playlistId, songId, userId } = req.body;
+    const userId = req.authenticatedUserId;
+    const { playlistId, songId } = req.body;
 
-    if (!playlistId || !songId || !userId) {
-      console.error("❌ Missing parameters:", { playlistId, songId, userId });
+    if (!playlistId || !songId) {
       return res.status(400).json({ error: "Missing playlistId or songId" });
     }
-    
+
     const response = await removeSongFromPlaylist(playlistId, songId, userId);
-    
+
     res.json(response);
   } catch (error) {
     console.error("❌ Error removing song:", error.message);
@@ -99,8 +99,11 @@ router.post("/remove-song", async (req, res) => {
  */
 router.post("/rename", async (req, res) => {
   try {
+    const userId = req.authenticatedUserId;
     const { playlistId, newName } = req.body;
-    const response = await renamePlaylist(playlistId, newName);
+
+    const response = await renamePlaylist(playlistId, newName, userId);
+
     res.json(response);
   } catch (error) {
     res.status(400).json({ error: error.message });
@@ -112,8 +115,10 @@ router.post("/rename", async (req, res) => {
  */
 router.delete("/delete", async (req, res) => {
   try {
+    const userId = req.authenticatedUserId;
     const { playlistId } = req.body;
-    const response = await deletePlaylist(playlistId);
+
+    const response = await deletePlaylist(playlistId, userId);
     res.json(response);
   } catch (error) {
     res.status(400).json({ error: error.message });

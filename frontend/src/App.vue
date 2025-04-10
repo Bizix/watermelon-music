@@ -22,7 +22,6 @@ async function refreshUserState() {
 
 // ✅ Fetch user's playlists from backend
 async function loadPlaylists(userId) {
-  console.log(`📥 Fetching playlists for user: ${userId}`);
   playlists.value = await fetchPlaylists(userId);
 }
 
@@ -30,7 +29,6 @@ onMounted(async () => {
   await refreshUserState();
 
   supabase.auth.onAuthStateChange(async (_event, session) => {
-    console.log("🔄 Global Auth State Changed:", session);
     user.value = session?.user || null;
     
     if (user.value) {

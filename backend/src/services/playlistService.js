@@ -93,15 +93,21 @@ async function createPlaylist(userId, name) {
  * ✅ Add a song to a playlist (Invalidates Cache)
  */
 async function addSongToPlaylist(playlistId, songId, userId) {
+  // ✅ Confirm playlist ownership
+  const { data: playlist, error: fetchError } = await supabaseAdmin
+    .from("playlists")
+    .select("user_id")
+    .eq("id", playlistId)
+    .single();
+
+  if (fetchError || !playlist || playlist.user_id !== userId) {
+    throw new Error("Unauthorized: You do not own this playlist");
+  }
+
   const { data, error } = await supabaseAdmin
     .from("playlist_songs")
     .insert([{ playlist_id: playlistId, song_id: songId }])
     .select("*");
-
-  if (!userId) {
-    console.error("userId is undefined, cannot add song to playlist.");
-    return { error: "User not authenticated" };
-  }
 
   if (error) {
     console.error("❌ Supabase Insert Error:", error);
@@ -109,7 +115,6 @@ async function addSongToPlaylist(playlistId, songId, userId) {
   }
 
   console.log("✅ Song added successfully:", data);
-
   removeCache(`playlists_${userId}`);
 
   return { data };
@@ -119,6 +124,17 @@ async function addSongToPlaylist(playlistId, songId, userId) {
  * ✅ Remove a song from a playlist (Invalidates Cache)
  */
 async function removeSongFromPlaylist(playlistId, songId, userId) {
+  // ✅ Confirm playlist ownership
+  const { data: playlist, error: fetchError } = await supabaseAdmin
+    .from("playlists")
+    .select("user_id")
+    .eq("id", playlistId)
+    .single();
+
+  if (fetchError || !playlist || playlist.user_id !== userId) {
+    throw new Error("Unauthorized: You do not own this playlist");
+  }
+
   const { data, error } = await supabaseAdmin
     .from("playlist_songs")
     .delete()
@@ -126,23 +142,13 @@ async function removeSongFromPlaylist(playlistId, songId, userId) {
     .eq("song_id", songId)
     .select();
 
-  if (!userId) {
-    console.error("userId is undefined, cannot remove song to playlist.");
-    return { error: "User not authenticated" };
-  }
-
-  if (error) {
-    console.error("❌ Supabase Delete Error:", error);
-    throw new Error(error.message);
-  }
+  if (error) throw new Error(error.message);
 
   if (data.length === 0) {
-    console.error("❌ Song not found in playlist.");
     return { error: "Song not found in playlist" };
   }
 
   console.log("✅ Song removed successfully:", data);
-
   removeCache(`playlists_${userId}`);
 
   return { data };
@@ -151,19 +157,26 @@ async function removeSongFromPlaylist(playlistId, songId, userId) {
 /**
  * ✅ Rename a playlist (Invalidates Cache)
  */
-async function renamePlaylist(playlistId, newName) {
+async function renamePlaylist(playlistId, newName, userId) {
+  // ✅ Ensure the playlist belongs to the user
+  const { data: playlist, error: fetchError } = await supabaseAdmin
+    .from("playlists")
+    .select("user_id")
+    .eq("id", playlistId)
+    .single();
+
+  if (fetchError || !playlist || playlist.user_id !== userId) {
+    throw new Error("Unauthorized: You do not own this playlist");
+  }
+
   const { error } = await supabaseAdmin
     .from("playlists")
     .update({ name: newName })
     .eq("id", playlistId);
 
-  if (error) {
-    throw new Error(error.message);
-  }
+  if (error) throw new Error(error.message);
 
   console.log("✅ Playlist renamed successfully.");
-
-  // ✅ Invalidate cache for user's playlists
   setCache(`playlists_${userId}`, null);
 
   return { message: "Playlist renamed successfully." };
@@ -172,25 +185,27 @@ async function renamePlaylist(playlistId, newName) {
 /**
  * ✅ Delete a playlist (Invalidates Cache)
  */
-async function deletePlaylist(playlistId) {
-  const { data, error } = await supabaseAdmin
+async function deletePlaylist(playlistId, userId) {
+  // ✅ Confirm ownership first
+  const { data: playlist, error: fetchError } = await supabaseAdmin
+    .from("playlists")
+    .select("user_id")
+    .eq("id", playlistId)
+    .single();
+
+  if (fetchError || !playlist || playlist.user_id !== userId) {
+    throw new Error("Unauthorized: You do not own this playlist");
+  }
+
+  const { error } = await supabaseAdmin
     .from("playlists")
     .delete()
-    .eq("id", playlistId)
-    .select();
+    .eq("id", playlistId);
 
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  if (!data.length) {
-    return { error: "Playlist not found." };
-  }
+  if (error) throw new Error(error.message);
 
   console.log("✅ Playlist deleted successfully.");
-
-  // ✅ Invalidate cache for user's playlists
-  setCache(`playlists_${data[0].user_id}`, null);
+  setCache(`playlists_${userId}`, null);
   setCache(`playlist_songs_${playlistId}`, null);
 
   return { message: "Playlist deleted successfully." };
