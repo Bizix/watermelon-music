@@ -1,26 +1,55 @@
 <template>
-  <!-- ✅ Playlist Options -->
-  <!-- <PlaylistOptions
-    :selectedOption="selectedOption"
-    :optionsMap="optionsMap"
-    :isLoading="isLoading"
-    @option-selected="handleOptionChange"
-  /> -->
+  <!-- ✅ Spotify Connection Status Banner -->
+  <SpotifyStatusBanner
+    :isSpotifyConnected="isSpotifyConnected"
+    :selectedPlaylist="selectedPlaylist"
+    @connectSpotify="handleConnectSpotify"
+    @exportToSpotify="handleExportToSpotify"
+  />
 
-  <!-- ✅ Loading Spinner -->
-  <div v-if="isLoading" class="flex flex-grow items-center justify-center">
-    <LoadingSpinner :isLoading="true" message="Loading playlists..." size="w-10 h-10" color="fill-green-500" />
+  <!-- ✅ Scrollable Content -->
+  <div
+    v-if="!isLoading"
+    ref="playlistScrollRef"
+    class="overflow-y-auto flex-grow w-full scrollbar-hidden"
+    @scroll="checkScroll"
+  >
+    <!-- ✅ If no playlist is selected, show list -->
+    <template v-if="!selectedPlaylist">
+      <div v-for="playlist in playlists" :key="playlist.id">
+        <!-- ✅ Show spinner if this playlist is being deleted -->
+        <div v-if="deletingPlaylistId === playlist.id" class="w-full flex justify-center py-4">
+          <LoadingSpinner :isLoading="true" message="Deleting..." size="w-8 h-8" color="fill-red-500" />
+        </div>
+
+        <!-- ✅ Otherwise show the playlist -->
+        <PlaylistItem
+          v-else
+          :playlist="playlist"
+          @select="handleSelectPlaylist"
+          @rename="handleRename"
+          @delete="handleDeletePlaylist"
+        />
+      </div>
+    </template>
+
+    <!-- ✅ If a playlist is selected, show its songs -->
+    <template v-else>
+      <PlaylistSongCard
+        v-for="song in selectedPlaylist.songs"
+        :key="song.id"
+        :song="song"
+        :allPlaylists="playlists"
+        :currentPlaylistId="selectedPlaylist.id"
+        @removeSong="handleRemoveSong"
+        @moveSongTo="handleMoveSongTo"
+      />
+    </template>
   </div>
 
-  <!-- ✅ Playlist List -->
-  <div v-if="!isLoading" ref="playlistListRef" class="overflow-y-auto flex-grow w-full scrollbar-hidden" @scroll="checkScroll">
-    <PlaylistItem
-      v-for="playlist in playlists"
-      :key="playlist.id"
-      :playlist="playlist"
-      :active-dropdown-playlist-id="activeDropdownPlaylistId"
-      @update-active-dropdown="updateActiveDropdown"
-    />
+  <!-- ✅ Loading Spinner -->
+  <div v-else class="flex flex-grow items-center justify-center">
+    <LoadingSpinner :isLoading="true" message="Loading playlists..." size="w-10 h-10" color="fill-green-500" />
   </div>
 
   <!-- ✅ Scroll Indicator -->
@@ -28,52 +57,47 @@
 </template>
 
 <script>
-import { ref, watchEffect, onMounted, inject } from "vue";
-// import PlaylistOptions from "@/components/PlaylistOptions.vue";
+import { ref, onMounted, watchEffect, nextTick, inject } from "vue";
+
+import { fetchPlaylists } from "@/api/fetchPlaylists";
+import { usePlaylist } from "@/composables/usePlaylist";
+
+import SpotifyStatusBanner from "@/components/SpotifyStatusBanner.vue";
+import PlaylistItem from "@/components/PlaylistItem.vue";
+import PlaylistDetails from "@/components/PlaylistDetails.vue";
 import LoadingSpinner from "@/components/LoadingSpinner.vue";
-// import PlaylistItem from "@/components/PlaylistItem.vue";
+import PlaylistSongCard from "@/components/PlaylistSongCard.vue";
 import ScrollIndicator from "@/components/ScrollIndicator.vue";
-// import { fetchPlaylists } from "@/api/fetchPlaylists.ts";
 import useScrollIndicator from "@/composables/useScrollIndicator.ts";
 
-const optionsMap = {
-  my_playlists: "My Playlists",
-  recommended: "Recommended",
-  top_trending: "Top Trending",
-  recently_played: "Recently Played",
-};
 
 export default {
   components: {
-    // PlaylistOptions,
-    // LoadingSpinner,
-    // PlaylistItem,
-    // ScrollIndicator,
+    SpotifyStatusBanner,
+    PlaylistItem,
+    PlaylistDetails,
+    LoadingSpinner,
+    ScrollIndicator,
   },
+
   setup() {
-    const selectedOption = ref("my_playlists");
-    const playlists = ref([]);
+    const playlists = inject("playlists"); 
+    const { deletePlaylist } = usePlaylist();
+    const selectedPlaylistId = ref(null);
+    const selectedPlaylist = ref(null);
     const isLoading = ref(true);
-    const playlistListRef = ref(null);
-    const { showScrollIndicator, checkScroll } = useScrollIndicator(playlistListRef);
+    const playlistScrollRef = ref(null);
+    const deletingPlaylistId = ref(null);
+    const { showScrollIndicator, checkScroll } = useScrollIndicator(playlistScrollRef);
+    const isSpotifyConnected = ref(false); // This should be updated based on real auth check
 
-    // New reactive state to track the active dropdown's playlist id.
-    const activeDropdownPlaylistId = ref(null);
-
-    // When a playlist item toggles, update the active dropdown id.
-    function updateActiveDropdown(playlistId) {
-      activeDropdownPlaylistId.value = activeDropdownPlaylistId.value === playlistId ? null : playlistId;
-    }
-
-    // ✅ Inject global dark mode state & toggle function
-    const isDarkMode = inject("isDarkMode");
-    const toggleDarkMode = inject("toggleDarkMode");
-
-    // ✅ Fetch playlists with error handling
-    async function fetchData(option) {
+    async function fetchData() {
       isLoading.value = true;
       try {
-        playlists.value = await fetchPlaylists(option);
+        playlists.value = await fetchPlaylists();
+        if (selectedPlaylistId.value) {
+          selectedPlaylist.value = playlists.value.find(p => p.id === selectedPlaylistId.value) || null;
+        }
       } catch (error) {
         console.error("❌ Error fetching playlists:", error);
       } finally {
@@ -81,34 +105,75 @@ export default {
       }
     }
 
-    // ✅ Handle option change
-    async function handleOptionChange(newOption) {
-      selectedOption.value = newOption;
-      await fetchData(newOption);
+    function handleSelectPlaylist(id) {
+      selectedPlaylistId.value = id;
+      selectedPlaylist.value = playlists.value.find(p => p.id === id);
     }
 
-    // ✅ Fetch initial playlists on mount
-    onMounted(() => {
-      fetchData("my_playlists");
-    });
+    async function handleDeletePlaylist(id) {
+      deletingPlaylistId.value = id;
 
+      const success = await deletePlaylist(id);
+      if (success) {
+        // ✅ Modify the actual global reactive array
+        playlists.value = playlists.value.filter(p => p.id !== id);
+
+        if (selectedPlaylistId.value === id) {
+          selectedPlaylistId.value = null;
+          selectedPlaylist.value = null;
+        }
+      }
+
+      deletingPlaylistId.value = null;
+    }
+
+    function handleRenamePlaylist(id) {
+      console.log("✏️ Rename playlist:", id);
+      // TODO: Add modal or inline rename logic
+    }
+
+    function handleRemoveSong(songId) {
+      console.log("❌ Remove song:", songId);
+      // TODO: API call to remove song from playlist
+    }
+
+    function handleMoveSong({ songId, toPlaylistId }) {
+      console.log(`➡️ Move song ${songId} to playlist ${toPlaylistId}`);
+      // TODO: API call to move song
+    }
+
+    function handleConnectSpotify() {
+      console.log("🔗 Connect Spotify");
+      // TODO: Launch Spotify OAuth flow
+    }
+
+    function handleExportToSpotify(playlistId) {
+      console.log("📤 Export to Spotify:", playlistId);
+      // TODO: API call to export playlist
+    }
+
+    onMounted(fetchData);
+
+    // Re-check scroll indicator visibility after content updates
     watchEffect(() => {
       checkScroll();
     });
 
     return {
-      selectedOption,
       playlists,
+      selectedPlaylist,
       isLoading,
+      isSpotifyConnected,
+      handleSelectPlaylist,
+      handleRenamePlaylist,
+      handleDeletePlaylist,
+      handleRemoveSong,
+      handleMoveSong,
+      handleConnectSpotify,
+      handleExportToSpotify,
       showScrollIndicator,
       checkScroll,
-      handleOptionChange,
-      optionsMap,
-      playlistListRef,
-      isDarkMode,
-      toggleDarkMode,
-      activeDropdownPlaylistId,
-      updateActiveDropdown,
+      playlistScrollRef         
     };
   },
 };

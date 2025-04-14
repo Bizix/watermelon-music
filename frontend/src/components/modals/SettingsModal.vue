@@ -40,12 +40,19 @@
     </button>
     
     <!-- Delete Account -->
-    <button @click="openModal(DeletionConfirmationModal)"
+    <button
+      @click="openModal(DeletionConfirmationModal, {
+        title: 'Delete Account',
+        message: 'Are you sure you want to delete your account? All associated playlist data will also be deleted.',
+        confirmText: 'Delete',
+        action: deleteAccount
+      })"
       class="w-full px-4 py-2 font-medium rounded-lg mt-4 text-red-500 border border-red-400 transition-all duration-300"
       :class="{
         'hover:bg-red-100': !isDarkMode,
         'hover:bg-red-900': isDarkMode
-      }">
+      }"
+    >
       Delete Account
     </button>
   </div>
@@ -96,5 +103,36 @@ function closeModal() {
   activeModalComponent.value = null;
   isSettingsHidden.value = false;
   emit("close");
+}
+
+async function deleteAccount() {
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+  if (userError || !user?.id) {
+    console.error("User not found or error:", userError);
+    return;
+  }
+
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData?.session?.access_token;
+  if (!accessToken) return;
+
+  const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/delete-user`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ userId: user.id }),
+  });
+
+  const result = await res.json();
+  if (!res.ok || result.error) {
+    console.error("❌ Failed to delete:", result.error);
+    return;
+  }
+
+  await supabase.auth.signOut();
+  emit("closeAll");
 }
 </script>

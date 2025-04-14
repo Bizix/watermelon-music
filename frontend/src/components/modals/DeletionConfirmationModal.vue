@@ -1,135 +1,75 @@
 <template>
-    <div class="relative w-96 p-6 rounded-lg shadow-lg transition-all duration-300 border"
+  <div class="relative w-96 p-6 rounded-lg shadow-lg transition-all duration-300 border"
+    :class="{
+      'bg-white text-black border-gray-300': !isDarkMode,
+      'bg-black text-white border-[var(--p-primary-400)]': isDarkMode
+    }">
+
+    <button @click="$emit('close')" class="absolute top-3 right-3 text-xl" aria-label="close">✖</button>
+
+    <h2 class="text-2xl font-bold text-center mb-6"
       :class="{
-        'bg-white text-black border-gray-300': !isDarkMode,
-        'bg-black text-white border-[var(--p-primary-400)]': isDarkMode
+        'text-[var(--p-primary-color)]': !isDarkMode,
+        'text-[var(--p-primary-400)]': isDarkMode
       }">
-      
-      <!-- Close Button -->
-      <button @click="$emit('close')" aria-label="Close" class="absolute top-3 right-3 text-xl">✖</button>
-      
-      <!-- Modal Title -->
-      <h2 class="text-2xl font-bold text-center mb-6"
+      {{ title }}
+    </h2>
+
+    <p class="text-center mb-6">{{ message }}</p>
+
+    <div class="flex justify-center gap-4">
+      <button @click="$emit('close')"
+        class="px-4 py-2 rounded-lg border transition-all duration-300"
         :class="{
-          'text-[var(--p-primary-color)]': !isDarkMode,
-          'text-[var(--p-primary-400)]': isDarkMode
+          'bg-gray-200 text-black hover:bg-gray-300': !isDarkMode,
+          'bg-gray-700 text-white hover:bg-gray-600': isDarkMode
         }">
-        Delete Account
-      </h2>
-      
-      <!-- Modal Message -->
-      <p class="text-center mb-6">
-        Are you sure you want to delete your account? All associated playlist data will also be deleted.
-      </p>
-      
-      <div class="flex justify-center gap-4">
-        <!-- Cancel Button -->
-        <button @click="$emit('close')"
-          class="px-4 py-2 rounded-lg border transition-all duration-300"
-          :class="{
-            'bg-gray-200 text-black hover:bg-gray-300': !isDarkMode,
-            'bg-gray-700 text-white hover:bg-gray-600': isDarkMode
-          }">
-          Cancel
-        </button>
-        
-        <!-- Confirm Button -->
-        <button @click="deleteAccount"
-          class="px-4 py-2 font-medium rounded-lg transition-all duration-300"
-          :class="{
-            'bg-red-500 text-white hover:bg-red-600': !isDarkMode,
-            'bg-red-700 text-white hover:bg-red-800': isDarkMode
-          }"
-          :disabled="isDeleting">
-          <span v-if="isDeleting">Deleting...</span>
-          <span v-else>Delete</span>
-        </button>
-      </div>
+        Cancel
+      </button>
+
+      <button @click="handleConfirm"
+        class="px-4 py-2 font-medium rounded-lg transition-all duration-300"
+        :class="{
+          'bg-red-500 text-white hover:bg-red-600': !isDarkMode,
+          'bg-red-700 text-white hover:bg-red-800': isDarkMode
+        }"
+        :disabled="isProcessing">
+        <span v-if="isProcessing">Processing...</span>
+        <span v-else>{{ confirmText }}</span>
+      </button>
     </div>
-  </template>
-  
-  <script setup>
-  import { inject, ref, defineEmits } from "vue";
-  import { supabase } from "@/lib/supabaseClient"; 
-  import { useRouter } from "vue-router";  
-  import { API_BASE_URL } from "../../config";
-  import emitter from "@/lib/emitter";
+  </div>
+</template>
 
+<script setup>
+import { inject, ref } from "vue";
 
+const props = defineProps({
+  title: String,
+  message: String,
+  confirmText: {
+    type: String,
+    default: "Delete"
+  },
+  action: Function, // ⚠️ Must return a Promise
+});
 
-  const isDarkMode = inject("isDarkMode");
-  const isDeleting = ref(false);
-  const emit = defineEmits(["close", "closeAll", "logout"]);
+const emit = defineEmits(["close", "completed"]);
+const isDarkMode = inject("isDarkMode");
+const isProcessing = ref(false);
 
-  const router = useRouter();
-  
-  async function deleteAccount() {
-  if (isDeleting.value) return;
-  isDeleting.value = true;
-
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-
-  if (userError || !user?.id) {
-    console.error("User not found or error:", userError);
-    isDeleting.value = false;
-    return;
-  }
+async function handleConfirm() {
+  if (isProcessing.value || !props.action) return;
+  isProcessing.value = true;
 
   try {
-    // First, delete user playlists
-    // await fetch(`${API_BASE_URL}/api/delete-playlists`, {
-    //   method: "POST",
-    //   headers: { "Content-Type": "application/json" },
-    //   body: JSON.stringify({ userId: user.id }),
-    // });
-
-    // Then, delete the user account
-
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    const accessToken = sessionData?.session?.access_token;
-
-    if (!accessToken) {
-      console.error("❌ No access token found");
-      isDeleting.value = false;
-      return;
-    }
-
-    const response = await fetch(`${API_BASE_URL}/api/delete-user`, {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({ userId: user.id }),
-    });
-
-    const result = await response.json();
-
-    if (!response.ok || result.error) {
-      throw new Error(result.error || "Failed to delete user");
-    }
-
-    // ✅ Only sign out if the user is still logged in
-    const { data: session } = await supabase.auth.getSession();
-
-        // ✅ Ensure Supabase completely signs the user out
-        await supabase.auth.signOut();
-
-    // ✅ Emit event to close all modals
-    emitter.emit("accountDeleted");
-
+    await props.action();
+    emit("completed");
     emit("close");
-    emit("logout");
-    emit("closeAll");
-
-    // Redirect user
-    router.push("/");
-
-  } catch (error) {
-    console.error("Error deleting account:", error.message);
+  } catch (err) {
+    console.error("❌ Action failed:", err);
   } finally {
-    isDeleting.value = false;
+    isProcessing.value = false;
   }
 }
-  </script>
-  
+</script>

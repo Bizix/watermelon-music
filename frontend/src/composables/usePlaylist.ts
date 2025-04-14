@@ -163,6 +163,44 @@ export function usePlaylist() {
     }
   }
 
+  async function deletePlaylist(playlistId: string): Promise<boolean | void> {
+    if (!playlistId) return;
+
+    isLoading.value = true;
+    errorMessage.value = "";
+
+    const token = await getAccessToken();
+    if (!token) {
+      errorMessage.value = "User not authenticated.";
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/playlistRoutes/delete`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ playlistId }),
+        }
+      );
+
+      if (!response.ok) {
+        errorMessage.value = "Failed to delete playlist.";
+        return;
+      }
+
+      return true;
+    } catch (error) {
+      errorMessage.value = "An error occurred while deleting the playlist.";
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   return {
     loadPlaylists, // ✅ Now the only function responsible for fetching playlists
     isLoading,
@@ -170,5 +208,6 @@ export function usePlaylist() {
     createPlaylist,
     addToPlaylist,
     removeFromPlaylist,
+    deletePlaylist,
   };
 }
