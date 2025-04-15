@@ -84,7 +84,7 @@ export default {
   setup() {
     const playlists = inject("playlists"); 
     const { deletePlaylist } = usePlaylist();
-    const searchQuery = ref("");
+    const filterQuery = ref("");
     const selectedPlaylistId = ref(null);
     const selectedPlaylist = ref(null);
     const isLoading = ref(true);
@@ -186,7 +186,7 @@ export default {
       showScrollIndicator,
       checkScroll,
       playlistScrollRef,
-      searchQuery,
+      filterQuery,
       handleFilter,
       handleCreatePlaylist,      
     };
