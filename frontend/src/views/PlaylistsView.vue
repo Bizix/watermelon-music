@@ -8,32 +8,52 @@
     @create="handleCreatePlaylist"
   />
 
+    <LoadingSpinner
+    v-if="creatingPlaylist"
+    :isLoading="true"
+    message="Creating playlist..."
+    size="w-8 h-8"
+    color="fill-green-500"
+  />
 
-  <!-- ✅ Scrollable Content -->
-  <div
-    v-if="!isLoading"
-    ref="playlistScrollRef"
-    class="overflow-y-auto flex-grow w-full scrollbar-hidden"
-    @scroll="checkScroll"
-  >
-    <!-- ✅ If no playlist is selected, show list -->
-    <template v-if="!selectedPlaylist">
-      <div v-for="playlist in filteredPlaylists" :key="playlist.id">
-        <!-- ✅ Show spinner if this playlist is being deleted -->
-        <div v-if="deletingPlaylistId === playlist.id" class="w-full flex justify-center py-4">
-          <LoadingSpinner :isLoading="true" message="Deleting..." size="w-8 h-8" color="fill-red-500" />
-        </div>
-
-        <!-- ✅ Otherwise show the playlist -->
-        <PlaylistItem
-          v-else
-          :playlist="playlist"
-          @select="handleSelectPlaylist"
-          @rename="handleRename"
-          @delete="handleDeletePlaylist"
-        />
+<!-- ✅ Scrollable Content -->
+<div
+  v-if="!isLoading && !creatingPlaylist"
+  ref="playlistScrollRef"
+  class="overflow-y-auto flex-grow w-full scrollbar-hidden"
+  @scroll="checkScroll"
+>
+  <!-- ✅ If no playlist is selected, show list -->
+  <template v-if="!selectedPlaylist">
+    <div v-for="playlist in filteredPlaylists" :key="playlist.id">
+      <!-- ✅ Show spinner if this playlist is being deleted -->
+      <div v-if="deletingPlaylistId === playlist.id" class="w-full flex justify-center py-4">
+        <LoadingSpinner :isLoading="true" message="Deleting..." size="w-8 h-8" color="fill-red-500" />
       </div>
-    </template>
+
+      <!-- ✅ Otherwise show the playlist -->
+      <PlaylistItem
+        v-else
+        :playlist="playlist"
+        @select="handleSelectPlaylist"
+        @rename="handleRename"
+        @delete="handleDeletePlaylist"
+      />
+    </div>
+  </template>
+
+  <!-- ✅ If a playlist is selected, show its songs -->
+  <template v-else>
+    <PlaylistSongCard
+      v-for="song in selectedPlaylist.songs"
+      :key="song.id"
+      :song="song"
+      :allPlaylists="playlists"
+      :currentPlaylistId="selectedPlaylist.id"
+      @removeSong="handleRemoveSong"
+      @moveSongTo="handleMoveSongTo"
+    />
+  </template>
 
     <!-- ✅ If a playlist is selected, show its songs -->
     <template v-else>
@@ -83,6 +103,8 @@ export default {
   },
 
   setup() {
+    const { createPlaylist } = usePlaylist();
+    const user = inject("user");
     const playlists = inject("playlists"); 
     const { deletePlaylist } = usePlaylist();
     const filterQuery = ref("");
@@ -91,6 +113,7 @@ export default {
     const isLoading = ref(true);
     const playlistScrollRef = ref(null);
     const deletingPlaylistId = ref(null);
+    const creatingPlaylist = ref(false);
     const { showScrollIndicator, checkScroll } = useScrollIndicator(playlistScrollRef);
     const isSpotifyConnected = ref(false); // This should be updated based on real auth check
 
@@ -173,10 +196,24 @@ export default {
       // TODO: API call to export playlist
     }
 
-    function handleCreatePlaylist() {
-      console.log("🆕 Open Create Playlist Modal");
-      // Reuse create playlist logic here
+    async function handleCreatePlaylist(name) {
+      if (!name || !name.trim()) return;
+      creatingPlaylist.value = true;
+
+      try {
+        const newPlaylist = await createPlaylist(name.trim());
+
+        if (newPlaylist) {
+          newPlaylist.songs = [];
+          playlists.value.unshift(newPlaylist); // Add it to the top
+        }
+      } catch (err) {
+        console.error("❌ Failed to create playlist:", err);
+      } finally {
+        creatingPlaylist.value = false;
+      }
     }
+
 
     onMounted(fetchData);
 
@@ -201,8 +238,10 @@ export default {
       checkScroll,
       playlistScrollRef,
       filterQuery,
-      handleCreatePlaylist,      
+      handleCreatePlaylist,   
       filteredPlaylists,
+      creatingPlaylist,
+      deletingPlaylistId,
     };
   },
 };

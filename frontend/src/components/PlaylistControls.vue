@@ -7,9 +7,36 @@
       class="px-3 py-1 rounded border w-full sm:w-auto text-sm"
     />
 
+     <!-- Show input for new playlist creation -->
+     <template v-if="showNewPlaylistInput">
+        <input
+          v-model="newPlaylistName"
+          type="text"
+          placeholder="New playlist name..."
+          class="px-3 py-1 rounded border text-sm"
+        />
+        <button
+          @click="submitNewPlaylist"
+          :disabled="!newPlaylistName.trim()"
+          class="px-3 py-1 text-sm text-white rounded transition"
+          :class="{
+            'bg-green-500 hover:bg-green-600': newPlaylistName.trim(),
+            'bg-gray-300 cursor-not-allowed': !newPlaylistName.trim()
+          }"
+        >
+          Create
+        </button>
+        <button
+          @click="cancelCreate"
+          class="text-sm text-gray-500 hover:underline"
+        >
+          Cancel
+        </button>
+      </template>
     <div class="flex gap-2 justify-end">
       <button
-        @click="$emit('create')"
+        v-if="!showNewPlaylistInput"
+        @click="showNewPlaylistInput = true"
         class="bg-[var(--p-primary-color)] text-white px-3 py-1 rounded text-sm hover:bg-[var(--p-primary-400)]"
       >
         Create Playlist
@@ -27,7 +54,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from "vue";
   // Define a prop for v-model
   const props = defineProps({
     modelValue: { type: String, default: "" },
@@ -46,4 +73,20 @@ import { computed } from 'vue';
       emit("update:modelValue", val);
     }
   });
+
+  const showNewPlaylistInput = ref(false);
+  const newPlaylistName = ref("");
+
+  function submitNewPlaylist() {
+    if (newPlaylistName.value.trim()) {
+      emit("create", newPlaylistName.value.trim());
+      newPlaylistName.value = "";
+      showNewPlaylistInput.value = false;
+    }
+  }
+
+  function cancelCreate() {
+    showNewPlaylistInput.value = false;
+    newPlaylistName.value = "";
+  }
 </script>
