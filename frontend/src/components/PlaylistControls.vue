@@ -1,9 +1,7 @@
-<!-- components/PlaylistControls.vue -->
 <template>
   <div class="w-full bg-surface-100 px-4 py-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b">
     <input
-      v-model="searchQuery"
-      @input="$emit('filter', searchQuery)"
+      v-model="internalValue"
       type="text"
       placeholder="Search playlists..."
       class="px-3 py-1 rounded border w-full sm:w-auto text-sm"
@@ -29,7 +27,23 @@
 </template>
 
 <script setup>
-const searchQuery = defineModel("searchQuery", { default: "" });
-defineProps(["isSpotifyConnected"]);
-defineEmits(["connectSpotify", "create", "filter"]);
+import { computed } from 'vue';
+  // Define a prop for v-model
+  const props = defineProps({
+    modelValue: { type: String, default: "" },
+    isSpotifyConnected: Boolean,
+  });
+  
+  // Define emit with the update event for v-model
+  const emit = defineEmits(["update:modelValue", "connectSpotify", "create"]);
+
+  // Using a computed getter/setter to bridge v-model automatically.
+  const internalValue = computed({
+    get() {
+      return props.modelValue;
+    },
+    set(val) {
+      emit("update:modelValue", val);
+    }
+  });
 </script>

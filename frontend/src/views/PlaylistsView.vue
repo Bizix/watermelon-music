@@ -1,12 +1,13 @@
+<!-- views/PlaylistsView.vue -->
 <template>
-  <!-- ✅ Spotify Connection Status Banner -->
+  <!-- ✅ Playlist Control component -->
   <PlaylistControls
-    v-model:search="searchQuery"
     :isSpotifyConnected="isSpotifyConnected"
-    @filter="handleFilter"
-    @createPlaylist="handleCreatePlaylist"
+    v-model="filterQuery"
     @connectSpotify="handleConnectSpotify"
+    @create="handleCreatePlaylist"
   />
+
 
   <!-- ✅ Scrollable Content -->
   <div
@@ -17,7 +18,7 @@
   >
     <!-- ✅ If no playlist is selected, show list -->
     <template v-if="!selectedPlaylist">
-      <div v-for="playlist in playlists" :key="playlist.id">
+      <div v-for="playlist in filteredPlaylists" :key="playlist.id">
         <!-- ✅ Show spinner if this playlist is being deleted -->
         <div v-if="deletingPlaylistId === playlist.id" class="w-full flex justify-center py-4">
           <LoadingSpinner :isLoading="true" message="Deleting..." size="w-8 h-8" color="fill-red-500" />
@@ -58,7 +59,7 @@
 </template>
 
 <script>
-import { ref, onMounted, watchEffect, nextTick, inject } from "vue";
+import { ref, onMounted, watchEffect, nextTick, inject, computed } from "vue";
 
 import { fetchPlaylists } from "@/api/fetchPlaylists";
 import { usePlaylist } from "@/composables/usePlaylist";
@@ -107,6 +108,24 @@ export default {
       }
     }
 
+    
+    const filteredPlaylists = computed(() => {
+      const query = filterQuery.value.toLowerCase().trim();
+
+      if (!query) return playlists.value;
+
+      return playlists.value.filter(p => {
+        const matchesName = p.name.toLowerCase().includes(query);
+        // const matchesSongs = p.songs?.some(song =>
+        //   song.title?.toLowerCase().includes(query) ||
+        //   song.artist?.toLowerCase().includes(query)
+        // );
+        return matchesName
+        //  || matchesSongs;
+      });
+    });
+
+
     function handleSelectPlaylist(id) {
       selectedPlaylistId.value = id;
       selectedPlaylist.value = playlists.value.find(p => p.id === id);
@@ -154,11 +173,6 @@ export default {
       // TODO: API call to export playlist
     }
 
-    function handleFilter(query) {
-      searchQuery.value = query;
-      // Filter logic will be added later
-    }
-
     function handleCreatePlaylist() {
       console.log("🆕 Open Create Playlist Modal");
       // Reuse create playlist logic here
@@ -187,8 +201,8 @@ export default {
       checkScroll,
       playlistScrollRef,
       filterQuery,
-      handleFilter,
       handleCreatePlaylist,      
+      filteredPlaylists,
     };
   },
 };
