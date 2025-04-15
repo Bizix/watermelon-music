@@ -1,6 +1,6 @@
 <template>
     <div
-      class="w-full flex flex-col p-4 shadow-lg border-t border-surface-300 transition hover:bg-[var(--p-surface-50)]"
+      class="w-full flex flex-col p-4 shadow-lg border-y border-surface-300 transition hover:bg-[var(--p-surface-50)]"
       :data-playlist-id="playlist.id"
     >
       <div class="flex items-center justify-between">
@@ -62,7 +62,7 @@
   import Modal from "@/components/Modal.vue";
   
   const emit = defineEmits(["select", "rename", "delete"]);  
-  
+
   const props = defineProps(["playlist"]);
   const activeModalComponent = ref(null);
   const activeModalProps = ref({});

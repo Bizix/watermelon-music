@@ -1,10 +1,11 @@
 <template>
   <!-- ✅ Spotify Connection Status Banner -->
-  <SpotifyStatusBanner
+  <PlaylistControls
+    v-model:search="searchQuery"
     :isSpotifyConnected="isSpotifyConnected"
-    :selectedPlaylist="selectedPlaylist"
+    @filter="handleFilter"
+    @createPlaylist="handleCreatePlaylist"
     @connectSpotify="handleConnectSpotify"
-    @exportToSpotify="handleExportToSpotify"
   />
 
   <!-- ✅ Scrollable Content -->
@@ -62,7 +63,7 @@ import { ref, onMounted, watchEffect, nextTick, inject } from "vue";
 import { fetchPlaylists } from "@/api/fetchPlaylists";
 import { usePlaylist } from "@/composables/usePlaylist";
 
-import SpotifyStatusBanner from "@/components/SpotifyStatusBanner.vue";
+import PlaylistControls from "@/components/PlaylistControls.vue";
 import PlaylistItem from "@/components/PlaylistItem.vue";
 import PlaylistDetails from "@/components/PlaylistDetails.vue";
 import LoadingSpinner from "@/components/LoadingSpinner.vue";
@@ -73,7 +74,7 @@ import useScrollIndicator from "@/composables/useScrollIndicator.ts";
 
 export default {
   components: {
-    SpotifyStatusBanner,
+    PlaylistControls,
     PlaylistItem,
     PlaylistDetails,
     LoadingSpinner,
@@ -83,6 +84,7 @@ export default {
   setup() {
     const playlists = inject("playlists"); 
     const { deletePlaylist } = usePlaylist();
+    const searchQuery = ref("");
     const selectedPlaylistId = ref(null);
     const selectedPlaylist = ref(null);
     const isLoading = ref(true);
@@ -152,6 +154,16 @@ export default {
       // TODO: API call to export playlist
     }
 
+    function handleFilter(query) {
+      searchQuery.value = query;
+      // Filter logic will be added later
+    }
+
+    function handleCreatePlaylist() {
+      console.log("🆕 Open Create Playlist Modal");
+      // Reuse create playlist logic here
+    }
+
     onMounted(fetchData);
 
     // Re-check scroll indicator visibility after content updates
@@ -173,7 +185,10 @@ export default {
       handleExportToSpotify,
       showScrollIndicator,
       checkScroll,
-      playlistScrollRef         
+      playlistScrollRef,
+      searchQuery,
+      handleFilter,
+      handleCreatePlaylist,      
     };
   },
 };
