@@ -1,3 +1,4 @@
+<!-- component/PlaylistsItem.vue -->
 <template>
     <div
       class="w-full flex flex-col p-4 shadow-lg border-y border-surface-300 transition hover:bg-[var(--p-surface-50)]"
@@ -83,21 +84,21 @@
   }
   
   function openModal() {
-  const playlistId = props.playlist.id;
-  const playlistName = props.playlist.name;
+    const playlistId = props.playlist.id;
+    const playlistName = props.playlist.name;
 
-  activeModalComponent.value = markRaw(DeletionConfirmationModal);
-  activeModalProps.value = {
-    title: "Delete Playlist",
-    message: `Are you sure you want to delete "${playlistName}"?`,
-    confirmText: "Delete Playlist",
-    confirmColor: "red",
-    action: async () => {
-      emit("delete", playlistId);
-    },
-  };
-}
-  
+    activeModalComponent.value = markRaw(DeletionConfirmationModal);
+    activeModalProps.value = {
+      title: "Delete Playlist",
+      message: `Are you sure you want to delete "${playlistName}"?`,
+      confirmText: "Delete Playlist",
+      confirmColor: "red",
+      action: async () => {
+        emit("delete", playlistId);
+      },
+    };
+  }
+    
   function closeModal() {
     activeModalComponent.value = null;
   }

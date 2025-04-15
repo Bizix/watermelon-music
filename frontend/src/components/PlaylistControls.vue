@@ -1,7 +1,18 @@
+<!-- component/PlaylistControls.vue -->
 <template>
   <div class="w-full bg-surface-100 px-4 py-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b">
+    <!-- Show back button if a playlist is selected -->
+    <button
+      v-if="selectedPlaylist"
+      @click="$emit('back')"
+      class="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 w-full sm:w-auto"
+    >
+      ← All Playlists
+    </button>
+
     <!-- ✅ Search Input -->
     <input
+      v-if="!selectedPlaylist"
       v-model="internalValue"
       type="text"
       placeholder="Search playlists..."
@@ -9,7 +20,7 @@
     />
 
     <!-- ✅ New Playlist Input -->
-    <template v-if="showNewPlaylistInput">
+    <template v-if="showNewPlaylistInput && !selectedPlaylist">
       <div class="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
         <input
           v-model="newPlaylistName"
@@ -41,7 +52,7 @@
 
     <!-- ✅ Button Group -->
     <div
-      v-if="!showNewPlaylistInput"
+      v-if="!showNewPlaylistInput && !selectedPlaylist"
       class="flex gap-2 justify-center sm:justify-end"
     >
       <button
@@ -69,10 +80,11 @@ import { computed, ref } from "vue";
   const props = defineProps({
     modelValue: { type: String, default: "" },
     isSpotifyConnected: Boolean,
+    selectedPlaylist: Object,
   });
   
   // Define emit with the update event for v-model
-  const emit = defineEmits(["update:modelValue", "connectSpotify", "create"]);
+  const emit = defineEmits(["update:modelValue", "connectSpotify", "create", "back"]);
 
   // Using a computed getter/setter to bridge v-model automatically.
   const internalValue = computed({

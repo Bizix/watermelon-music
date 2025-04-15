@@ -3,9 +3,11 @@
   <!-- ✅ Playlist Control component -->
   <PlaylistControls
     :isSpotifyConnected="isSpotifyConnected"
+     :selectedPlaylist="selectedPlaylist"
     v-model="filterQuery"
     @connectSpotify="handleConnectSpotify"
     @create="handleCreatePlaylist"
+    @back="handleBack"
   />
 
     <LoadingSpinner
@@ -16,45 +18,32 @@
     color="fill-green-500"
   />
 
-<!-- ✅ Scrollable Content -->
-<div
-  v-if="!isLoading && !creatingPlaylist"
-  ref="playlistScrollRef"
-  class="overflow-y-auto flex-grow w-full scrollbar-hidden"
-  @scroll="checkScroll"
->
-  <!-- ✅ If no playlist is selected, show list -->
-  <template v-if="!selectedPlaylist">
-    <div v-for="playlist in filteredPlaylists" :key="playlist.id">
-      <!-- ✅ Show spinner if this playlist is being deleted -->
-      <div v-if="deletingPlaylistId === playlist.id" class="w-full flex justify-center py-4">
-        <LoadingSpinner :isLoading="true" message="Deleting..." size="w-8 h-8" color="fill-red-500" />
+    <!-- ✅ Scrollable Content -->
+    <div
+      v-if="!isLoading && !creatingPlaylist"
+      ref="playlistScrollRef"
+      class="overflow-y-auto flex-grow w-full scrollbar-hidden"
+      @scroll="checkScroll"
+    >
+    <!-- ✅ If no playlist is selected, show list -->
+    <template v-if="!selectedPlaylist">
+      <div v-for="playlist in filteredPlaylists" :key="playlist.id">
+        <!-- ✅ Show spinner if this playlist is being deleted -->
+        <div v-if="deletingPlaylistId === playlist.id" class="w-full flex justify-center py-4">
+          <LoadingSpinner :isLoading="true" message="Deleting..." size="w-8 h-8" color="fill-red-500" />
+        </div>
+
+        <!-- ✅ Otherwise show the playlist -->
+        <PlaylistItem
+          v-else
+          :playlist="playlist"
+          :isRenaming="renamingPlaylistId === playlist.id"
+          @select="handleSelectPlaylist"
+          @rename="handleRenamePlaylist"
+          @delete="handleDeletePlaylist"
+        />
       </div>
-
-      <!-- ✅ Otherwise show the playlist -->
-      <PlaylistItem
-        v-else
-        :playlist="playlist"
-        :isRenaming="renamingPlaylistId === playlist.id"
-        @select="handleSelectPlaylist"
-        @rename="handleRenamePlaylist"
-        @delete="handleDeletePlaylist"
-      />
-    </div>
-  </template>
-
-  <!-- ✅ If a playlist is selected, show its songs -->
-  <template v-else>
-    <PlaylistSongCard
-      v-for="song in selectedPlaylist.songs"
-      :key="song.id"
-      :song="song"
-      :allPlaylists="playlists"
-      :currentPlaylistId="selectedPlaylist.id"
-      @removeSong="handleRemoveSong"
-      @moveSongTo="handleMoveSongTo"
-    />
-  </template>
+    </template>
 
     <!-- ✅ If a playlist is selected, show its songs -->
     <template v-else>
@@ -63,7 +52,7 @@
         :key="song.id"
         :song="song"
         :allPlaylists="playlists"
-        :currentPlaylistId="selectedPlaylist.id"
+        :currentPlaylistId="String(selectedPlaylist.id)"
         @removeSong="handleRemoveSong"
         @moveSongTo="handleMoveSongTo"
       />
@@ -84,10 +73,10 @@ import { ref, onMounted, watchEffect, nextTick, inject, computed } from "vue";
 
 import { fetchPlaylists } from "@/api/fetchPlaylists";
 import { usePlaylist } from "@/composables/usePlaylist";
+import { fetchSongsByIds } from "@/api/fetchSongsByIds";
 
 import PlaylistControls from "@/components/PlaylistControls.vue";
 import PlaylistItem from "@/components/PlaylistItem.vue";
-import PlaylistDetails from "@/components/PlaylistDetails.vue";
 import LoadingSpinner from "@/components/LoadingSpinner.vue";
 import PlaylistSongCard from "@/components/PlaylistSongCard.vue";
 import ScrollIndicator from "@/components/ScrollIndicator.vue";
@@ -98,7 +87,7 @@ export default {
   components: {
     PlaylistControls,
     PlaylistItem,
-    PlaylistDetails,
+    PlaylistSongCard,
     LoadingSpinner,
     ScrollIndicator,
   },
@@ -150,10 +139,25 @@ export default {
     });
 
 
-    function handleSelectPlaylist(id) {
+    async function handleSelectPlaylist(id) {
       selectedPlaylistId.value = id;
-      selectedPlaylist.value = playlists.value.find(p => p.id === id);
-    }
+      const playlist = playlists.value.find(p => p.id === id);
+
+      if (playlist) {
+        try {
+          const songIds = playlist.songs;
+
+          const songs = await fetchSongsByIds(songIds);
+          selectedPlaylist.value = {
+            ...playlist,
+            songs
+          };
+
+        } catch (err) {
+          console.error("❌ Failed to load songs for playlist:", err);
+        }
+      }
+}
 
     async function handleDeletePlaylist(id) {
       deletingPlaylistId.value = id;
@@ -202,7 +206,7 @@ export default {
       // TODO: API call to remove song from playlist
     }
 
-    function handleMoveSong({ songId, toPlaylistId }) {
+    function handleMoveSongTo({ songId, toPlaylistId }) {
       console.log(`➡️ Move song ${songId} to playlist ${toPlaylistId}`);
       // TODO: API call to move song
     }
@@ -235,32 +239,38 @@ export default {
       }
     }
 
+    function handleBack() {
+      selectedPlaylist.value = null;
+      selectedPlaylistId.value = null;
+    }
 
     onMounted(fetchData);
 
     // Re-check scroll indicator visibility after content updates
     watchEffect(() => {
       checkScroll();
+      // console.log("📦 selectedPlaylist songs:", selectedPlaylist.value?.songs);
     });
 
     return {
       playlists,
       selectedPlaylist,
-      isLoading,
       isSpotifyConnected,
       handleSelectPlaylist,
       handleRenamePlaylist,
       handleDeletePlaylist,
       handleRemoveSong,
-      handleMoveSong,
+      handleMoveSongTo,
+      handleCreatePlaylist,   
       handleConnectSpotify,
       handleExportToSpotify,
+      handleBack,
       showScrollIndicator,
       checkScroll,
       playlistScrollRef,
       filterQuery,
-      handleCreatePlaylist,   
       filteredPlaylists,
+      isLoading,
       creatingPlaylist,
       deletingPlaylistId,
       renamingPlaylistId,
