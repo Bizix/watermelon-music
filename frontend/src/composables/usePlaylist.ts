@@ -201,6 +201,44 @@ export function usePlaylist() {
     }
   }
 
+  async function renamePlaylist(playlistId: string, newName: string): Promise<boolean | void> {
+    if (!playlistId || !newName.trim()) return;
+  
+    isLoading.value = true;
+    errorMessage.value = "";
+  
+    const token = await getAccessToken();
+    if (!token) {
+      errorMessage.value = "User not authenticated.";
+      return;
+    }
+  
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/playlistRoutes/rename`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ playlistId, newName }),
+        }
+      );
+  
+      if (!response.ok) {
+        errorMessage.value = "Failed to rename playlist.";
+        return;
+      }
+  
+      return true;
+    } catch (error) {
+      errorMessage.value = "An error occurred while renaming the playlist.";
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   return {
     loadPlaylists, // ✅ Now the only function responsible for fetching playlists
     isLoading,
@@ -209,5 +247,6 @@ export function usePlaylist() {
     addToPlaylist,
     removeFromPlaylist,
     deletePlaylist,
+    renamePlaylist,
   };
 }

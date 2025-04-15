@@ -35,8 +35,9 @@
       <PlaylistItem
         v-else
         :playlist="playlist"
+        :isRenaming="renamingPlaylistId === playlist.id"
         @select="handleSelectPlaylist"
-        @rename="handleRename"
+        @rename="handleRenamePlaylist"
         @delete="handleDeletePlaylist"
       />
     </div>
@@ -103,10 +104,8 @@ export default {
   },
 
   setup() {
-    const { createPlaylist } = usePlaylist();
     const user = inject("user");
     const playlists = inject("playlists"); 
-    const { deletePlaylist } = usePlaylist();
     const filterQuery = ref("");
     const selectedPlaylistId = ref(null);
     const selectedPlaylist = ref(null);
@@ -114,8 +113,10 @@ export default {
     const playlistScrollRef = ref(null);
     const deletingPlaylistId = ref(null);
     const creatingPlaylist = ref(false);
-    const { showScrollIndicator, checkScroll } = useScrollIndicator(playlistScrollRef);
+    const renamingPlaylistId = ref(null);
     const isSpotifyConnected = ref(false); // This should be updated based on real auth check
+    const { deletePlaylist, renamePlaylist, createPlaylist } = usePlaylist();
+    const { showScrollIndicator, checkScroll } = useScrollIndicator(playlistScrollRef);
 
     async function fetchData() {
       isLoading.value = true;
@@ -171,9 +172,29 @@ export default {
       deletingPlaylistId.value = null;
     }
 
-    function handleRenamePlaylist(id) {
-      console.log("✏️ Rename playlist:", id);
-      // TODO: Add modal or inline rename logic
+    async function handleRenamePlaylist({ id, newName }) {
+      const playlist = playlists.value.find(p => p.id === id);
+      if (!playlist) return;
+
+      const oldName = playlist.name;
+      if (newName === oldName) return;
+
+      // Optimistically update UI
+      playlist.name = newName;
+      renamingPlaylistId.value = id;
+
+      try {
+        const success = await renamePlaylist(id, newName);
+        if (!success) {
+          // Roll back if it fails
+          playlist.name = oldName;
+        }
+      } catch (err) {
+        console.error("❌ Failed to rename playlist:", err);
+        playlist.name = oldName; // Roll back on error
+      } finally {
+        renamingPlaylistId.value = null;
+      }
     }
 
     function handleRemoveSong(songId) {
@@ -242,6 +263,7 @@ export default {
       filteredPlaylists,
       creatingPlaylist,
       deletingPlaylistId,
+      renamingPlaylistId,
     };
   },
 };
