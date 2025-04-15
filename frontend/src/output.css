@@ -406,6 +406,9 @@
   .flex-col {
     flex-direction: column;
   }
+  .flex-row {
+    flex-direction: row;
+  }
   .flex-wrap {
     flex-wrap: wrap;
   }
@@ -1068,6 +1071,16 @@
   .sm\:justify-between {
     @media (width >= 40rem) {
       justify-content: space-between;
+    }
+  }
+  .sm\:justify-end {
+    @media (width >= 40rem) {
+      justify-content: flex-end;
+    }
+  }
+  .sm\:justify-start {
+    @media (width >= 40rem) {
+      justify-content: flex-start;
     }
   }
   .sm\:gap-1 {

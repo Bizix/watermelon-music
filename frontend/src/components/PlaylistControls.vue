@@ -1,41 +1,50 @@
 <template>
   <div class="w-full bg-surface-100 px-4 py-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b">
+    <!-- ✅ Search Input -->
     <input
       v-model="internalValue"
       type="text"
       placeholder="Search playlists..."
-      class="px-3 py-1 rounded border w-full sm:w-auto text-sm"
+      class="px-3 py-1 rounded border text-sm w-full sm:w-auto"
     />
 
-     <!-- Show input for new playlist creation -->
-     <template v-if="showNewPlaylistInput">
+    <!-- ✅ New Playlist Input -->
+    <template v-if="showNewPlaylistInput">
+      <div class="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
         <input
           v-model="newPlaylistName"
           type="text"
           placeholder="New playlist name..."
-          class="px-3 py-1 rounded border text-sm"
+          class="px-3 py-1 rounded border text-sm w-full sm:w-auto"
         />
-        <button
-          @click="submitNewPlaylist"
-          :disabled="!newPlaylistName.trim()"
-          class="px-3 py-1 text-sm text-white rounded transition"
-          :class="{
-            'bg-green-500 hover:bg-green-600': newPlaylistName.trim(),
-            'bg-gray-300 cursor-not-allowed': !newPlaylistName.trim()
-          }"
-        >
-          Create
-        </button>
-        <button
-          @click="cancelCreate"
-          class="text-sm text-gray-500 hover:underline"
-        >
-          Cancel
-        </button>
-      </template>
-    <div class="flex gap-2 justify-end">
+        <div class="flex gap-2 justify-center sm:justify-start">
+          <button
+            @click="submitNewPlaylist"
+            :disabled="!newPlaylistName.trim()"
+            class="px-3 py-1 text-sm text-white rounded transition"
+            :class="{
+              'bg-green-500 hover:bg-green-600': newPlaylistName.trim(),
+              'bg-gray-300 cursor-not-allowed': !newPlaylistName.trim()
+            }"
+          >
+            Create
+          </button>
+          <button
+            @click="cancelCreate"
+            class="text-sm text-gray-500 hover:underline"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </template>
+
+    <!-- ✅ Button Group -->
+    <div
+      v-if="!showNewPlaylistInput"
+      class="flex gap-2 justify-center sm:justify-end"
+    >
       <button
-        v-if="!showNewPlaylistInput"
         @click="showNewPlaylistInput = true"
         class="bg-[var(--p-primary-color)] text-white px-3 py-1 rounded text-sm hover:bg-[var(--p-primary-400)]"
       >
@@ -52,6 +61,7 @@
     </div>
   </div>
 </template>
+
 
 <script setup>
 import { computed, ref } from "vue";
