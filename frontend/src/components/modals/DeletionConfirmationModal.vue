@@ -1,3 +1,4 @@
+<!-- components/modals/DeletionConfirmationModal.vue -->
 <template>
   <div class="relative w-96 p-6 rounded-lg shadow-lg transition-all duration-300 border"
     :class="{

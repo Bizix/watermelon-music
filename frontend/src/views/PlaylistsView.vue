@@ -53,6 +53,8 @@
         :song="song"
         :allPlaylists="playlists"
         :currentPlaylistId="String(selectedPlaylist.id)"
+        :playlistName="selectedPlaylist.name"
+        :removing="removingSongId === song.id"
         @removeSong="handleRemoveSong"
         @moveSongTo="handleMoveSongTo"
       />
@@ -66,10 +68,18 @@
 
   <!-- ✅ Scroll Indicator -->
   <ScrollIndicator v-if="!isLoading" :showScrollIndicator="showScrollIndicator" />
+
+  <!-- ✅ Modal Renderer -->
+  <Modal
+    v-if="activeModalComponent"
+    :modalComponent="activeModalComponent"
+    :props="activeModalProps"
+    @close="activeModalComponent = null"
+  />
 </template>
 
 <script>
-import { ref, onMounted, watchEffect, nextTick, inject, computed } from "vue";
+import { ref, onMounted, watchEffect, nextTick, inject, computed, provide } from "vue";
 
 import { fetchPlaylists } from "@/api/fetchPlaylists";
 import { usePlaylist } from "@/composables/usePlaylist";
@@ -81,6 +91,7 @@ import LoadingSpinner from "@/components/LoadingSpinner.vue";
 import PlaylistSongCard from "@/components/PlaylistSongCard.vue";
 import ScrollIndicator from "@/components/ScrollIndicator.vue";
 import useScrollIndicator from "@/composables/useScrollIndicator.ts";
+import Modal from "@/components/Modal.vue";
 
 
 export default {
@@ -90,6 +101,7 @@ export default {
     PlaylistSongCard,
     LoadingSpinner,
     ScrollIndicator,
+    Modal,
   },
 
   setup() {
@@ -98,13 +110,17 @@ export default {
     const filterQuery = ref("");
     const selectedPlaylistId = ref(null);
     const selectedPlaylist = ref(null);
+    const activeModalComponent = ref(null);
+    const activeModalProps = ref({});
     const isLoading = ref(true);
     const playlistScrollRef = ref(null);
     const deletingPlaylistId = ref(null);
     const creatingPlaylist = ref(false);
     const renamingPlaylistId = ref(null);
+    const removingSongId = ref(null);
     const isSpotifyConnected = ref(false); // This should be updated based on real auth check
-    const { deletePlaylist, renamePlaylist, createPlaylist } = usePlaylist();
+    const { deletePlaylist, renamePlaylist, createPlaylist, addToPlaylist, removeFromPlaylist } = usePlaylist();
+
     const { showScrollIndicator, checkScroll } = useScrollIndicator(playlistScrollRef);
 
     async function fetchData() {
@@ -201,9 +217,27 @@ export default {
       }
     }
 
-    function handleRemoveSong(songId) {
-      console.log("❌ Remove song:", songId);
-      // TODO: API call to remove song from playlist
+    async function handleRemoveSong(songId) {
+      if (!selectedPlaylist.value) return;
+
+      removingSongId.value = songId;
+
+      const playlistId = selectedPlaylist.value.id;
+      try {
+        const success = await removeFromPlaylist(playlistId, songId);
+        if (success) {
+          selectedPlaylist.value.songs = selectedPlaylist.value.songs.filter(s => s.id !== songId);
+
+          const playlist = playlists.value.find(p => p.id === playlistId);
+          if (playlist) {
+            playlist.songs = playlist.songs.filter(id => id !== songId);
+          }
+        }
+      } catch (err) {
+        console.error("❌ Failed to remove song from playlist:", err);
+      } finally {
+        removingSongId.value = null;
+      }
     }
 
     function handleMoveSongTo({ songId, toPlaylistId }) {
@@ -274,6 +308,9 @@ export default {
       creatingPlaylist,
       deletingPlaylistId,
       renamingPlaylistId,
+      removingSongId,
+      activeModalComponent,
+      activeModalProps,
     };
   },
 };

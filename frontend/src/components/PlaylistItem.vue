@@ -102,6 +102,7 @@
   function closeModal() {
     activeModalComponent.value = null;
   }
+  
   </script>
   
   
