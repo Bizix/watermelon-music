@@ -240,9 +240,19 @@ export default {
       }
     }
 
-    function handleMoveSongTo({ songId, toPlaylistId }) {
-      console.log(`➡️ Move song ${songId} to playlist ${toPlaylistId}`);
-      // TODO: API call to move song
+    async function handleMoveSongTo({ songId, toPlaylistId }) {
+
+      try {
+        const success = await addToPlaylist(toPlaylistId, songId);
+        if (success) {
+          const playlist = playlists.value.find(p => p.id === toPlaylistId);
+          if (playlist && !playlist.songs.includes(songId)) {
+            playlist.songs.push(songId);
+          }
+        }
+      } catch (err) {
+        console.error(`❌ Failed to move song ${songId} to playlist ${toPlaylistId}:`, err);
+      }
     }
 
     function handleConnectSpotify() {
