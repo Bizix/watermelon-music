@@ -23,55 +23,72 @@
 
     <!-- ✅ Scrollable Content -->
     <div
-      v-if="!isLoading && !creatingPlaylist"impo
+      v-if="!isLoading && !creatingPlaylist"
       ref="playlistScrollRef"
       class="overflow-y-auto flex-grow w-full scrollbar-hidden"
       @scroll="checkScroll"
     >
-    <!-- ✅ If no playlist is selected, show list -->
-    <template v-if="!selectedPlaylist">
-      <div v-for="playlist in filteredPlaylists" :key="playlist.id">
-        <!-- ✅ Show spinner if this playlist is being deleted -->
-        <div v-if="deletingPlaylistId === playlist.id" class="w-full flex justify-center py-4">
-          <LoadingSpinner :isLoading="true" message="Deleting..." size="w-8 h-8" color="fill-red-500" />
+      <!-- 1️⃣ Detail is loading, show a single spinner -->
+      <template v-if="isDetailLoading">
+        <div class="w-full flex justify-center py-8">
+          <LoadingSpinner
+            :isLoading="true"
+            message="Loading playlist…"
+            size="w-10 h-10"
+            color="fill-green-500"
+          />
         </div>
+      </template>
 
-        <!-- ✅ Otherwise show the playlist -->
-        <PlaylistItem
-          v-else
-          :playlist="playlist"
-          :isRenaming="renamingPlaylistId === playlist.id"
-          @select="handleSelectPlaylist"
-          @rename="handleRenamePlaylist"
-          @delete="handleDeletePlaylist"
-        />
-      </div>
-    </template>
-
-    <template  v-if="selectedPlaylist && Array.isArray(selectedPlaylist.songs)">
-      <Draggable
-        v-model="selectedPlaylist.songs"
-        itemKey="id"
-        :tag="'div'"
-        ghost-class="bg-gray-100"
-      >
-        <template #item="{ element }">
-          <div :key="element.id">
-            <PlaylistSongCard
-              :key="element.id"
-              :song="element"
-              :allPlaylists="playlists"
-              :currentPlaylistId="String(selectedPlaylist.id)"
-              :playlistName="selectedPlaylist.name"
-              :removing="removingSongId === element.id"
-              @removeSong="handleRemoveSong"
-              @moveSongTo="handleMoveSongTo"
+      <!-- 2️⃣ Not loading & no playlist selected: show the list -->
+      <template v-else-if="!selectedPlaylist">
+        <div v-for="playlist in filteredPlaylists" :key="playlist.id">
+          <!-- deleting‑spinner / PlaylistItem as before -->
+          <div v-if="deletingPlaylistId === playlist.id" class="w-full flex justify-center py-4">
+            <LoadingSpinner
+              :isLoading="true"
+              message="Deleting..."
+              size="w-8 h-8"
+              color="fill-red-500"
             />
           </div>
-        </template>
-      </Draggable>
-    </template>
-  </div>
+          <PlaylistItem
+            v-else
+            :playlist="playlist"
+            :isRenaming="renamingPlaylistId === playlist.id"
+            @select="handleSelectPlaylist"
+            @rename="handleRenamePlaylist"
+            @delete="handleDeletePlaylist"
+          />
+        </div>
+      </template>
+
+      <!-- 3️⃣ Not loading & a playlist is selected: show detail -->
+      <template v-else>
+        <Draggable
+          v-model="selectedPlaylist.songs"
+          itemKey="id"
+          :tag="'div'"
+          ghost-class="bg-gray-100"
+        >
+          <template #item="{ element }">
+            <div :key="element.id">
+              <PlaylistSongCard
+                :key="element.id"
+                :song="element"
+                :allPlaylists="playlists"
+                :currentPlaylistId="String(selectedPlaylist.id)"
+                :playlistName="selectedPlaylist.name"
+                :removing="removingSongId === element.id"
+                @removeSong="handleRemoveSong"
+                @moveSongTo="handleMoveSongTo"
+              />
+            </div>
+          </template>
+        </Draggable>
+      </template>
+    </div>
+
 
   <!-- ✅ Loading Spinner -->
   <div v-else class="flex flex-grow items-center justify-center">
@@ -128,6 +145,7 @@ export default {
     const activeModalComponent = ref(null);
     const activeModalProps = ref({});
     const isLoading = ref(true);
+    const isDetailLoading = ref(false);
     const playlistScrollRef = ref(null);
     const deletingPlaylistId = ref(null);
     const creatingPlaylist = ref(false);
@@ -176,6 +194,8 @@ export default {
 
     async function handleSelectPlaylist(id) {
       // 🧠 Refresh playlists in case they were reset
+      isDetailLoading.value = true;
+
       if (!playlists.value.length) {
         playlists.value = await fetchPlaylists();
       }
@@ -196,6 +216,7 @@ export default {
       } else {
         console.warn("⚠️ Playlist not found for ID:", id);
       }
+      isDetailLoading.value = false;
     }
 
     
@@ -383,6 +404,7 @@ export default {
       filteredPlaylists,
       isOrderDirty,
       isLoading,
+      isDetailLoading,
       creatingPlaylist,
       deletingPlaylistId,
       renamingPlaylistId,
