@@ -104,9 +104,24 @@ async function addSongToPlaylist(playlistId, songId, userId) {
     throw new Error("Unauthorized: You do not own this playlist");
   }
 
+  // ✅ Get the current max position in the playlist
+  const { data: maxData, error: maxError } = await supabaseAdmin
+    .from("playlist_songs")
+    .select("position")
+    .eq("playlist_id", playlistId)
+    .order("position", { ascending: false })
+    .limit(1)
+    .single();
+
+  if (maxError && maxError.code !== "PGRST116") { // not 'no rows'
+    throw new Error(`Failed to get current max position: ${maxError.message}`);
+  }
+
+  const nextPosition = maxData?.position != null ? maxData.position + 1 : 0;
+
   const { data, error } = await supabaseAdmin
     .from("playlist_songs")
-    .insert([{ playlist_id: playlistId, song_id: songId }])
+    .insert([{ playlist_id: playlistId, song_id: songId, position: nextPosition }])
     .select("*");
 
   if (error) {
@@ -210,6 +225,45 @@ async function deletePlaylist(playlistId, userId) {
 
   return { message: "Playlist deleted successfully." };
 }
+
+/**
+ * ✅ Reorder a playlist (Invalidates Cache)
+ */
+async function reorderPlaylistSongs(playlistId, newSongIds, userId) {
+  // ✅ Confirm ownership
+  const { data: playlist, error: fetchError } = await supabaseAdmin
+    .from("playlists")
+    .select("user_id")
+    .eq("id", playlistId)
+    .single();
+
+  if (fetchError || !playlist || playlist.user_id !== userId) {
+    throw new Error("Unauthorized: You do not own this playlist");
+  }
+
+  // ✅ Construct rows to update
+  const updates = newSongIds.map((songId, index) => ({
+    playlist_id: playlistId,
+    song_id: songId,
+    position: index,
+  }));
+
+  const { error } = await supabaseAdmin
+    .from("playlist_songs")
+    .upsert(updates, {
+      onConflict: ["playlist_id", "song_id"], // ensures only existing links are updated
+    });
+
+  if (error) {
+    throw new Error(`Failed to reorder songs: ${error.message}`);
+  }
+
+  console.log("✅ Playlist reordered in batch.");
+  setCache(`playlists_${userId}`, null);
+
+  return { message: "Playlist reordered successfully." };
+}
+
 // ✅ Export service functions
 module.exports = {
   createPlaylist,
@@ -218,4 +272,5 @@ module.exports = {
   renamePlaylist,
   deletePlaylist,
   getUserPlaylistsWithSongs,
+  reorderPlaylistSongs,
 };

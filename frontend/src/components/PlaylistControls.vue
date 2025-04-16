@@ -9,6 +9,19 @@
     >
       ← All Playlists
     </button>
+    <!-- ✅ Save Order Button -->
+    <button
+      v-if="selectedPlaylist"
+      @click="$emit('saveOrder')"
+      :disabled="!isOrderDirty"
+      class="px-3 py-1 rounded text-sm transition w-full sm:w-auto"
+      :class="{
+        'bg-green-500 text-white hover:bg-green-600': isOrderDirty,
+        'bg-gray-300 text-gray-500 cursor-not-allowed': !isOrderDirty
+      }"
+    >
+      💾 Save Order
+    </button>
 
     <!-- ✅ Search Input -->
     <input
@@ -81,10 +94,11 @@ import { computed, ref } from "vue";
     modelValue: { type: String, default: "" },
     isSpotifyConnected: Boolean,
     selectedPlaylist: Object,
+    isOrderDirty: Boolean
   });
   
   // Define emit with the update event for v-model
-  const emit = defineEmits(["update:modelValue", "connectSpotify", "create", "back"]);
+  const emit = defineEmits(["update:modelValue", "connectSpotify", "create", "back", "saveOrder"]);
 
   // Using a computed getter/setter to bridge v-model automatically.
   const internalValue = computed({

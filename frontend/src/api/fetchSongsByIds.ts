@@ -1,22 +1,22 @@
+// src/api/fetchSongsByPlaylistId.ts
 import { supabase } from "@/lib/supabaseClient";
-import { toRaw } from "vue";
 
-export async function fetchSongsByIds(ids: number[]) {
-  if (!ids || ids.length === 0) return [];
-
-  // Ensure it's a raw, plain array
-  const rawIds = Array.isArray(ids) ? [...toRaw(ids)] : [];
+export async function fetchSongsByPlaylistId(playlistId: number) {
+  if (!playlistId) return [];
 
   const { data, error } = await supabase
-    .from("songs")
-    .select("*")
-    .in("id", rawIds);
-
+    .from("playlist_songs")
+    .select("position, song:songs(*)")  // join songs
+    .eq("playlist_id", playlistId)
+    .order("position", { ascending: true });
 
   if (error) {
-    console.error("❌ Failed to fetch songs by IDs:", error.message);
+    console.error("❌ Failed to fetch songs for playlist:", error.message);
     throw new Error(error.message);
   }
 
-  return data;
+  return data.map(entry => ({
+    ...entry.song,
+    _position: entry.position, // optional
+  }));
 }

@@ -4,10 +4,12 @@
   <PlaylistControls
     :isSpotifyConnected="isSpotifyConnected"
      :selectedPlaylist="selectedPlaylist"
+     :isOrderDirty="isOrderDirty"
     v-model="filterQuery"
     @connectSpotify="handleConnectSpotify"
     @create="handleCreatePlaylist"
     @back="handleBack"
+    @saveOrder="handleSaveOrder"
   />
 
     <LoadingSpinner
@@ -45,19 +47,28 @@
       </div>
     </template>
 
-    <!-- ✅ If a playlist is selected, show its songs -->
-    <template v-else>
-      <PlaylistSongCard
-        v-for="song in selectedPlaylist.songs"
-        :key="song.id"
-        :song="song"
-        :allPlaylists="playlists"
-        :currentPlaylistId="String(selectedPlaylist.id)"
-        :playlistName="selectedPlaylist.name"
-        :removing="removingSongId === song.id"
-        @removeSong="handleRemoveSong"
-        @moveSongTo="handleMoveSongTo"
-      />
+    <template  v-if="selectedPlaylist && Array.isArray(selectedPlaylist.songs)">
+      <Draggable
+        v-model="selectedPlaylist.songs"
+        itemKey="id"
+        :tag="'div'"
+        ghost-class="bg-gray-100"
+      >
+        <template #item="{ element }">
+          <div :key="element.id">
+            <PlaylistSongCard
+              :key="element.id"
+              :song="element"
+              :allPlaylists="playlists"
+              :currentPlaylistId="String(selectedPlaylist.id)"
+              :playlistName="selectedPlaylist.name"
+              :removing="removingSongId === element.id"
+              @removeSong="handleRemoveSong"
+              @moveSongTo="handleMoveSongTo"
+            />
+          </div>
+        </template>
+      </Draggable>
     </template>
   </div>
 
@@ -77,13 +88,12 @@
     @close="activeModalComponent = null"
   />
 </template>
-
 <script>
-import { ref, onMounted, watchEffect, nextTick, inject, computed, provide } from "vue";
+import { ref, onMounted, watchEffect, nextTick, inject, computed, provide, watch } from "vue";
 
 import { fetchPlaylists } from "@/api/fetchPlaylists";
 import { usePlaylist } from "@/composables/usePlaylist";
-import { fetchSongsByIds } from "@/api/fetchSongsByIds";
+import { fetchSongsByPlaylistId } from "@/api/fetchSongsByIds";
 
 import PlaylistControls from "@/components/PlaylistControls.vue";
 import PlaylistItem from "@/components/PlaylistItem.vue";
@@ -92,9 +102,12 @@ import PlaylistSongCard from "@/components/PlaylistSongCard.vue";
 import ScrollIndicator from "@/components/ScrollIndicator.vue";
 import useScrollIndicator from "@/composables/useScrollIndicator.ts";
 import Modal from "@/components/Modal.vue";
+import Draggable from "vuedraggable";
+import debounce from "lodash/debounce";
 
 
 export default {
+  inheritAttrs: false,
   components: {
     PlaylistControls,
     PlaylistItem,
@@ -102,6 +115,7 @@ export default {
     LoadingSpinner,
     ScrollIndicator,
     Modal,
+    Draggable,
   },
 
   setup() {
@@ -118,8 +132,12 @@ export default {
     const creatingPlaylist = ref(false);
     const renamingPlaylistId = ref(null);
     const removingSongId = ref(null);
+
+    const previousOrder = ref([]);
+    const isOrderDirty = ref(false);
+    
     const isSpotifyConnected = ref(false); // This should be updated based on real auth check
-    const { deletePlaylist, renamePlaylist, createPlaylist, addToPlaylist, removeFromPlaylist } = usePlaylist();
+    const { deletePlaylist, renamePlaylist, createPlaylist, addToPlaylist, removeFromPlaylist, reorderPlaylistSongs } = usePlaylist();
 
     const { showScrollIndicator, checkScroll } = useScrollIndicator(playlistScrollRef);
 
@@ -161,19 +179,30 @@ export default {
 
       if (playlist) {
         try {
-          const songIds = playlist.songs;
-
-          const songs = await fetchSongsByIds(songIds);
-          selectedPlaylist.value = {
-            ...playlist,
-            songs
-          };
-
+          const songs = await fetchSongsByPlaylistId(playlist.id);
+          selectedPlaylist.value = { ...playlist, songs };
+          previousOrder.value = songs.map(song => song.id); // ✅ Track initial order
         } catch (err) {
           console.error("❌ Failed to load songs for playlist:", err);
         }
       }
-}
+    }
+
+    async function handleSaveOrder() {
+      if (!selectedPlaylist.value) return;
+      const reorderedIds = selectedPlaylist.value.songs.map(s => s.id);
+
+      try {
+        const success = await reorderPlaylistSongs(selectedPlaylist.value.id, reorderedIds);
+        if (success) {
+          previousOrder.value = [...reorderedIds]; // ✅ Reset dirty state
+          isOrderDirty.value = false;
+
+        }
+      } catch (err) {
+        console.error("❌ Failed to save playlist order:", err);
+      }
+    }
 
     async function handleDeletePlaylist(id) {
       deletingPlaylistId.value = id;
@@ -288,13 +317,37 @@ export default {
       selectedPlaylistId.value = null;
     }
 
+
+    const handleReorder = debounce(async () => {
+      if (!selectedPlaylist.value) return;
+
+      const reorderedIds = selectedPlaylist.value.songs.map(song => song.id);
+
+      try {
+        const success = await reorderPlaylistSongs(selectedPlaylist.value.id, reorderedIds);
+        if (success) {
+          console.log("✅ Reorder saved to backend");
+        }
+      } catch (err) {
+        console.error("❌ Failed to save new order:", err);
+      }
+    }, 500); // waits 500ms after last drag before triggering
+
+
     onMounted(fetchData);
 
-    // Re-check scroll indicator visibility after content updates
     watchEffect(() => {
       checkScroll();
-      // console.log("📦 selectedPlaylist songs:", selectedPlaylist.value?.songs);
     });
+    
+    watch(
+      () => selectedPlaylist.value?.songs?.map(s => s.id),
+      (newOrder) => {
+        isOrderDirty.value = JSON.stringify(newOrder) !== JSON.stringify(previousOrder.value);
+      },
+      { deep: true }
+    );
+
 
     return {
       playlists,
@@ -309,11 +362,14 @@ export default {
       handleConnectSpotify,
       handleExportToSpotify,
       handleBack,
+      handleReorder,
+      handleSaveOrder,
       showScrollIndicator,
       checkScroll,
       playlistScrollRef,
       filterQuery,
       filteredPlaylists,
+      isOrderDirty,
       isLoading,
       creatingPlaylist,
       deletingPlaylistId,

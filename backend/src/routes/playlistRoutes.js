@@ -7,6 +7,7 @@ const {
   removeSongFromPlaylist,
   renamePlaylist,
   deletePlaylist,
+  reorderPlaylistSongs
 } = require("../services/playlistService");
 
 const router = express.Router();
@@ -122,6 +123,26 @@ router.delete("/delete", async (req, res) => {
     res.json(response);
   } catch (error) {
     res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * ✅ Reorder a Playlist
+ */
+router.post("/reorder", async (req, res) => {
+  try {
+    const userId = req.authenticatedUserId;
+    const { playlistId, songIds } = req.body;
+
+    if (!playlistId || !Array.isArray(songIds)) {
+      return res.status(400).json({ error: "Invalid input" });
+    }
+
+    const response = await reorderPlaylistSongs(playlistId, songIds, userId);
+    res.status(200).json(response);
+  } catch (err) {
+    console.error("❌ Error in reorder route:", err);
+    res.status(500).json({ error: err.message || "Failed to reorder songs" });
   }
 });
 

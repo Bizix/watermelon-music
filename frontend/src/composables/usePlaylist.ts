@@ -239,6 +239,47 @@ export function usePlaylist() {
     }
   }
 
+  async function reorderPlaylistSongs(
+    playlistId: string,
+    songIds: string[]
+  ): Promise<boolean | void> {
+    if (!playlistId || !Array.isArray(songIds)) return;
+  
+    isLoading.value = true;
+    errorMessage.value = "";
+  
+    const token = await getAccessToken();
+    if (!token) {
+      errorMessage.value = "User not authenticated.";
+      return;
+    }
+  
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/playlistRoutes/reorder`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ playlistId, songIds }),
+        }
+      );
+  
+      if (!response.ok) {
+        errorMessage.value = "Failed to reorder songs.";
+        return;
+      }
+  
+      return true;
+    } catch (error) {
+      errorMessage.value = "An error occurred while reordering songs.";
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   return {
     loadPlaylists, // ✅ Now the only function responsible for fetching playlists
     isLoading,
@@ -248,5 +289,6 @@ export function usePlaylist() {
     removeFromPlaylist,
     deletePlaylist,
     renamePlaylist,
+    reorderPlaylistSongs,
   };
 }

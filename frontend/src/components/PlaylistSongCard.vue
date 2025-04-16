@@ -1,6 +1,7 @@
 <!-- components/PlaylistSongCard.vue -->
 <template>
-  <div  
+  <div 
+     v-bind="attrs" 
      v-if="!props.removing"
      class="song-card w-full flex flex-col p-4 shadow-lg border-t"
      :data-song-id="props.song.id">
@@ -29,12 +30,17 @@
            </template>
            <!-- ✅ Add to Playlist Button -->
            <button
-              v-if="canAddToAnyPlaylist"
               @click="togglePlaylistDropdown"
-              class="text-slg font-medium rounded-lg cursor-pointer text-[var(--p-primary-color)] hover:text-[var(--p-primary-400)]"
-              >
-           +
-           </button>
+              :disabled="!canAddToAnyPlaylist"
+              :class="[
+                'text-slg font-medium rounded-lg',
+                canAddToAnyPlaylist 
+                  ? 'cursor-pointer text-[var(--p-primary-color)] hover:text-[var(--p-primary-400)]' 
+                  : 'cursor-not-allowed text-gray-400'
+              ]"
+            >
+              +
+            </button>
            <!-- ✅ Custom Playlist Dropdown -->
            <div
               v-if="isDropdownOpen"
@@ -80,7 +86,10 @@
   import { ref,  markRaw, computed, inject, onMounted, onBeforeUnmount } from "vue";
   import DeletionConfirmationModal from "@/components/modals/DeletionConfirmationModal.vue";
   import Modal from "@/components/Modal.vue";
-  
+  import { useAttrs } from "vue";
+
+
+  const attrs = useAttrs();
   const emit = defineEmits(["removeSong", "moveSongTo"]);
   const props = defineProps(["song", "allPlaylists", "currentPlaylistId", "playlistName", "removing"]);
 
