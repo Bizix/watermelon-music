@@ -1,3 +1,4 @@
+<!-- components/AppHeader.vue -->
 <template>
   <!-- ✅ Header Section -->
   <div class="relative flex flex-col items-center my-6">
@@ -224,13 +225,19 @@ async function handleAccountDeletion() {
 const buttonLabel = computed(() => route.path === '/playlists' ? 'Charts' : 'Playlists');
 
 function toggleRoute() {
-      if (route.path === '/playlists') {
-        router.push('/');
-      } else {
-        router.push('/playlists');
-      }
-      showUserMenu.value = false;
-    }
+  // Pick the opposite view by its route name
+  const target = route.name === "Playlists" ? "Charts" : "Playlists";
 
+  router.push({ name: target })
+    .catch(err => {
+      // ignore the "navigation duplicated" warning
+      if (err.name !== "NavigationDuplicated") {
+        console.error(err);
+      }
+    });
+
+  showUserMenu.value = false;
+}
+  
   </script>
   

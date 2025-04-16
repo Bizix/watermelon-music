@@ -1,3 +1,4 @@
+<!-- views/ChartView.vue -->
 <template>
     <!-- ✅ Genre Selector -->
     <GenreSelector 

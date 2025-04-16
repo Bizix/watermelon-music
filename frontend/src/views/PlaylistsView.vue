@@ -23,7 +23,7 @@
 
     <!-- ✅ Scrollable Content -->
     <div
-      v-if="!isLoading && !creatingPlaylist"
+      v-if="!isLoading && !creatingPlaylist"impo
       ref="playlistScrollRef"
       class="overflow-y-auto flex-grow w-full scrollbar-hidden"
       @scroll="checkScroll"
@@ -175,19 +175,30 @@ export default {
 
 
     async function handleSelectPlaylist(id) {
-      selectedPlaylistId.value = id;
-      const playlist = playlists.value.find(p => p.id === id);
+      // 🧠 Refresh playlists in case they were reset
+      if (!playlists.value.length) {
+        playlists.value = await fetchPlaylists();
+      }
 
-      if (playlist) {
+      selectedPlaylistId.value = id;
+      const rawPlaylists = [...playlists.value]; // break reactivity
+      const playlist = rawPlaylists.find(p => p.id === id);
+
+      if (playlist && typeof playlist === "object") {
         try {
           const songs = await fetchSongsByPlaylistId(playlist.id);
+
           selectedPlaylist.value = { ...playlist, songs };
-          previousOrder.value = songs.map(song => song.id); // ✅ Track initial order
+          previousOrder.value = songs.map(song => song.id);
         } catch (err) {
           console.error("❌ Failed to load songs for playlist:", err);
         }
+      } else {
+        console.warn("⚠️ Playlist not found for ID:", id);
       }
     }
+
+    
 
     async function handleSaveOrder() {
       if (!selectedPlaylist.value) return;

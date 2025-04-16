@@ -6,8 +6,17 @@ import ChartView from "@/views/ChartView.vue";
 import PlaylistsView from "@/views/PlaylistsView.vue";
 
 const routes = [
-  { path: "/", component: ChartView },
-  { path: "/playlists", component: PlaylistsView, meta: { requiresAuth: true }  },
+  {
+    path: "/",
+    name: "Charts",
+    component: ChartView
+  },
+  {
+    path: "/playlists",
+    name: "Playlists",         
+    component: PlaylistsView,
+    meta: { requiresAuth: true }
+  },
 ];
 
 const router = createRouter({
