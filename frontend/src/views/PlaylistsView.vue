@@ -3,8 +3,9 @@
   <!-- ✅ Playlist Control component -->
   <PlaylistControls
     :isSpotifyConnected="isSpotifyConnected"
-     :selectedPlaylist="selectedPlaylist"
-     :isOrderDirty="isOrderDirty"
+    :selectedPlaylist="selectedPlaylist"
+    :selectedPlaylistSongs="selectedPlaylist?.songs || []"
+    :isOrderDirty="isOrderDirty"
     v-model="filterQuery"
     @connectSpotify="handleConnectSpotify"
     @create="handleCreatePlaylist"

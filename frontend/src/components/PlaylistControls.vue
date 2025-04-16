@@ -22,6 +22,13 @@
     >
       💾 Save Order
     </button>
+    <button
+      v-if="youtubeExportUrl"
+      @click="exportToYouTube"
+      class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 w-full sm:w-auto"
+    >
+      🎬 {{ exportLabel }}
+    </button>
 
     <!-- ✅ Search Input -->
     <input
@@ -94,7 +101,8 @@ import { computed, ref } from "vue";
     modelValue: { type: String, default: "" },
     isSpotifyConnected: Boolean,
     selectedPlaylist: Object,
-    isOrderDirty: Boolean
+    selectedPlaylistSongs: { type: Array, default: () => [] },
+    isOrderDirty: Boolean,
   });
   
   // Define emit with the update event for v-model
@@ -109,6 +117,31 @@ import { computed, ref } from "vue";
       emit("update:modelValue", val);
     }
   });
+
+  const youtubeIds = computed(() =>
+    props.selectedPlaylistSongs
+      .filter(song => song.youtube_url)
+      .map(song => song.youtube_url)
+      .slice(0, 50)
+  );
+
+  const youtubeExportUrl = computed(() => {
+    const ids = youtubeIds.value.map(id => `https://www.youtube.com/watch?v=${id}`).join(",");
+    return ids.length > 0 ? `https://www.youtube.com/watch_videos?video_ids=${youtubeIds.value.join(",")}` : null;
+  });
+
+  const exportLabel = computed(() => {
+    if (props.selectedPlaylistSongs.length > 50) {
+      return "Export first 50 songs to YouTube";
+    }
+    return "Export to YouTube";
+  });
+
+  function exportToYouTube() {
+    if (youtubeExportUrl.value) {
+      window.open(youtubeExportUrl.value, "_blank");
+    }
+  }
 
   const showNewPlaylistInput = ref(false);
   const newPlaylistName = ref("");
