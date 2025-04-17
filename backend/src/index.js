@@ -11,6 +11,7 @@ const lyricsRoutes = require("./routes/lyricsRoutes");
 const deletionRoutes = require ("./routes/deletionRoutes.js"); 
 const playlistRoutes = require("./routes/playlistRoutes");
 const cronRoutes = require("./routes/cronRoutes");
+const spotifyRoutes = require("./routes/spotifyRoutes");
 
 const app = express();
 
@@ -44,6 +45,8 @@ app.use("/api", youtubeRoutes);
 app.use("/api", deletionRoutes);
 app.use("/api/lyrics", lyricsRoutes); 
 app.use("/api/playlistRoutes", playlistRoutes);
+app.use("/api/spotify", spotifyRoutes);
+
 
 if (!process.env.CHROME_PATH) {
   process.env.CHROME_PATH = require('puppeteer').executablePath();

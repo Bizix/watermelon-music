@@ -1,3 +1,4 @@
+<!-- component/modals/SettingsModal.vue -->
 <template>
   <!-- ✅ Prevent rendering until isLoading is false -->
   <div v-if="!isLoading && !isSettingsHidden" class="relative w-96 p-6 rounded-lg shadow-lg transition-all duration-300 border"

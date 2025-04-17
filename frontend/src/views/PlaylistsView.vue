@@ -320,8 +320,8 @@ export default {
     }
 
     function handleConnectSpotify() {
-      console.log("🔗 Connect Spotify");
-      // TODO: Launch Spotify OAuth flow
+      const currentPath = window.location.pathname;
+      window.location.href = `${import.meta.env.VITE_API_BASE_URL}/api/spotify/login?from=${encodeURIComponent(currentPath)}`;
     }
 
     function handleExportToSpotify(playlistId) {

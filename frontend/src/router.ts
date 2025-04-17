@@ -1,21 +1,26 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { supabase } from "./lib/supabaseClient";
 
-
 import ChartView from "@/views/ChartView.vue";
 import PlaylistsView from "@/views/PlaylistsView.vue";
+import CallbackView from "@/views/CallbackView.vue";
 
 const routes = [
   {
     path: "/",
     name: "Charts",
-    component: ChartView
+    component: ChartView,
   },
   {
     path: "/playlists",
-    name: "Playlists",         
+    name: "Playlists",
     component: PlaylistsView,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
+  },
+  { 
+    path: "/callback", 
+    name: "SpotifyCallback",
+    component: CallbackView 
   },
 ];
 
@@ -42,6 +47,5 @@ router.beforeEach(async (to, from, next) => {
     next();
   }
 });
-
 
 export default router;

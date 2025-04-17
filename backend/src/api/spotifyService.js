@@ -10,6 +10,11 @@ const SPOTIFY_SEARCH_URL = "https://api.spotify.com/v1/search";
 let spotifyAccessToken = null;
 let tokenExpirationTime = 0;
 
+if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) {
+  throw new Error("Missing Spotify client credentials in environment variables.");
+}
+
+// 🎫 Client Credentials Flow — used for public data (e.g. searching tracks)
 async function getSpotifyAccessToken() {
   if (spotifyAccessToken && Date.now() < tokenExpirationTime) {
     return spotifyAccessToken;
@@ -37,6 +42,37 @@ async function getSpotifyAccessToken() {
       error.response?.data || error.message
     );
     return null;
+  }
+}
+
+// Handles exchange of code → access_token (used in /callback)
+async function exchangeSpotifyCodeForToken(code, redirectUri) {
+  try {
+    const response = await axios.post(
+      SPOTIFY_AUTH_URL,
+      new URLSearchParams({
+        grant_type: "authorization_code",
+        code,
+        redirect_uri: redirectUri,
+      }),
+      {
+        headers: {
+          Authorization:
+            "Basic " +
+            Buffer.from(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`).toString("base64"),
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      }
+    );
+
+    return {
+      accessToken: response.data.access_token,
+      refreshToken: response.data.refresh_token,
+      expiresIn: response.data.expires_in,
+    };
+  } catch (err) {
+    console.error("❌ Failed to exchange code:", err.response?.data || err.message);
+    throw err;
   }
 }
 
@@ -135,4 +171,4 @@ async function fetchSpotifyUrl(title, artist, album) {
   }
 }
 
-module.exports = { fetchSpotifyUrl };
+module.exports = { fetchFromSpotify, fetchSpotifyUrl, exchangeSpotifyCodeForToken };
