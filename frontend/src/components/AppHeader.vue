@@ -186,6 +186,7 @@
   async function logout() {
     await supabase.auth.signOut();
     await refreshUserState();
+    window.location.href = "/";
   }
 
 async function refreshUserState() {
