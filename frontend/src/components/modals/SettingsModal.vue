@@ -22,7 +22,8 @@
     </h2>
     
     <!-- Link Spotify Auth -->
-    <button class="w-full px-4 py-2 font-medium rounded-lg transition-all duration-300"
+    <button   v-if="!isSpotifyConnected"
+    @click="handleConnectSpotify" class="w-full px-4 py-2 font-medium rounded-lg transition-all duration-300"
       :class="{
         'bg-[var(--p-primary-color)] text-white hover:bg-[var(--p-primary-400)]': !isDarkMode,
         'bg-[var(--p-surface-50)] hover:bg-[var(--p-surface-100)]': isDarkMode
@@ -77,11 +78,13 @@ import DeletionConfirmationModal from "./DeletionConfirmationModal.vue";
 
 const emit = defineEmits(["close"]);
 
+const isSpotifyConnected = inject("isSpotifyConnected");
 const isDarkMode = inject("isDarkMode");
 const activeModalComponent = ref(null);
 const activeModalProps = ref({});
 const isSettingsHidden = ref(false);
 const isOAuthUser = ref(false); 
+const user = inject("user");
 const isLoading = ref(true); // ✅ Track loading state
 
 onMounted(async () => {
@@ -104,6 +107,18 @@ function closeModal() {
   activeModalComponent.value = null;
   isSettingsHidden.value = false;
   emit("close");
+}
+
+async function handleConnectSpotify() {
+  if (!user?.value?.id) {
+    console.warn("🛑 User not logged in");
+    return;
+  }
+
+  const currentPath = window.location.pathname;
+  const loginUrl = `${import.meta.env.VITE_API_BASE_URL}/api/spotify/login?from=${encodeURIComponent(currentPath)}&user_id=${user.value.id}`;
+
+  window.location.href = loginUrl;
 }
 
 async function deleteAccount() {

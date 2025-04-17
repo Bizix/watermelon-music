@@ -49,7 +49,7 @@ router.get("/callback", async (req, res) => {
             spotify_refresh_token: refreshToken,
             spotify_expires_at: expiresAt,
             is_spotify_connected: true,
-            });
+            }).select();
         
         if (upsertError) {
             console.error("❌ Failed to upsert user:", upsertError);
