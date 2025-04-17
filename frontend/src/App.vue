@@ -18,15 +18,38 @@ import AppHeader from "@/components/AppHeader.vue";
 const { isDarkMode, toggleDarkMode } = useDarkMode();
 const user      = ref(null);
 const playlists = ref([]);
+const isSpotifyConnected = ref(false);
 
 // fetch user & playlists
 async function refreshUserState() {
   console.log("🔄 Refreshing user state...");
+
   const { data: { session }, error } = await supabase.auth.getSession();
-  if (error) console.error("❌", error.message);
+  if (error) {
+    console.error("❌ Error fetching session:", error);
+    return;
+  }
+
   user.value = session?.user ?? null;
 
   if (user.value) {
+    // ✅ Fetch additional Spotify connection status from `users` table
+    const { data, error: userTableError } = await supabase
+    .from("users")
+    .select("is_spotify_connected")
+    .eq("id", user.value.id)
+    .maybeSingle();
+
+      if (userTableError) {
+      console.warn("⚠️ Failed to fetch user Spotify status:", userTableError.message);
+      } else if (!data) {
+        console.warn("⚠️ No row found in users table for:", user.value.id);
+      } else {
+        isSpotifyConnected.value = !!data.is_spotify_connected;
+        console.log("🎧 isSpotifyConnected:", isSpotifyConnected.value);
+      }
+
+    // Also update playlists if needed
     playlists.value = await fetchPlaylists(user.value.id);
   } else {
     playlists.value = [];
@@ -73,6 +96,7 @@ onUnmounted(() => {
 // provide globally
 provide("user", user);
 provide("playlists", playlists);
+provide("isSpotifyConnected", isSpotifyConnected);
 provide("isDarkMode", isDarkMode);
 provide("toggleDarkMode", toggleDarkMode);
 </script>

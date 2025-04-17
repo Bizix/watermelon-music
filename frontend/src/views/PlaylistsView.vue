@@ -157,7 +157,8 @@ export default {
     const previousOrder = ref([]);
     const isOrderDirty = ref(false);
     
-    const isSpotifyConnected = ref(false); // This should be updated based on real auth check
+    const isSpotifyConnected = inject("isSpotifyConnected");
+
     const { deletePlaylist, renamePlaylist, createPlaylist, addToPlaylist, removeFromPlaylist, reorderPlaylistSongs } = usePlaylist();
 
     const { showScrollIndicator, checkScroll } = useScrollIndicator(playlistScrollRef);
