@@ -1,5 +1,6 @@
 const { supabaseAdmin } = require("../config/supabaseAdmin");
 const { getCache, setCache, removeCache } = require("../services/cacheService");
+const pool = require("../config/db");
 
 async function getUserPlaylistsWithSongs(userId) {
   const cacheKey = `playlists_${userId}`;
@@ -264,6 +265,29 @@ async function reorderPlaylistSongs(playlistId, newSongIds, userId) {
   return { message: "Playlist reordered successfully." };
 }
 
+
+// ✅ Wipe all playlists and their related songs for a user
+async function deleteAllPlaylistsForUser(userId) {
+  try {
+    // Delete songs from playlist_songs first (if exists)
+    await pool.query(
+      `DELETE FROM playlist_songs
+       WHERE playlist_id IN (
+         SELECT id FROM playlists WHERE user_id = $1
+       )`,
+      [userId]
+    );
+
+    // Then delete playlists
+    await pool.query(`DELETE FROM playlists WHERE user_id = $1`, [userId]);
+
+    console.log(`🧹 Deleted all playlists for user ${userId}`);
+  } catch (err) {
+    console.error("❌ Error deleting user playlists:", err);
+    throw err;
+  }
+}
+
 // ✅ Export service functions
 module.exports = {
   createPlaylist,
@@ -273,4 +297,5 @@ module.exports = {
   deletePlaylist,
   getUserPlaylistsWithSongs,
   reorderPlaylistSongs,
+  deleteAllPlaylistsForUser,
 };
