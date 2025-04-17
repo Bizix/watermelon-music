@@ -319,10 +319,19 @@ export default {
       }
     }
 
-    function handleConnectSpotify() {
-      const currentPath = window.location.pathname;
-      window.location.href = `${import.meta.env.VITE_API_BASE_URL}/api/spotify/login?from=${encodeURIComponent(currentPath)}`;
+    async function handleConnectSpotify() {
+      if (!user.value?.id) {
+        console.warn("🛑 User not logged in");
+        return;
+      }
+
+      const currentPath = window.location.pathname || "/";
+      const loginUrl = `${import.meta.env.VITE_API_BASE_URL}/api/spotify/login?from=${encodeURIComponent(currentPath)}&user_id=${user.value.id}`;
+
+      console.log("🔗 Redirecting to:", loginUrl);
+      window.location.href = loginUrl;
     }
+
 
     function handleExportToSpotify(playlistId) {
       console.log("📤 Export to Spotify:", playlistId);
