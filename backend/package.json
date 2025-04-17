@@ -22,7 +22,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "prestart": "npx browsers install chrome",
+    "prestart": "npx puppeteer browsers install chrome",
     "start": "node src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
