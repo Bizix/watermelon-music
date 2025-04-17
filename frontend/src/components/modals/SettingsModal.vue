@@ -149,6 +149,6 @@ async function deleteAccount() {
   }
 
   await supabase.auth.signOut();
-  emit("closeAll");
+  window.location.href = "/";
 }
 </script>

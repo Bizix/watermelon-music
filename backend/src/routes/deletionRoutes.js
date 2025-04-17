@@ -1,6 +1,7 @@
 const express = require("express");
 const { supabaseAdmin } = require("../config/supabaseAdmin");
 const verifySupabaseUser = require("../middlewares/verifySupabaseUser");
+const { deleteAllPlaylistsForUser } = require("../services/playlistService");
 
 const router = express.Router();
 
@@ -11,7 +12,6 @@ router.post("/delete-user", verifySupabaseUser, async (req, res) => {
   console.log("🔐 Request from:", req.authenticatedUserId);
   console.log("🧍 Requesting deletion of:", userId);
 
-  // ✅ Ensure the user is only deleting their own account
   if (userId !== req.authenticatedUserId) {
     return res
       .status(403)
@@ -19,13 +19,13 @@ router.post("/delete-user", verifySupabaseUser, async (req, res) => {
   }
 
   try {
-    const { data: user, error: userError } =
-      await supabaseAdmin.auth.admin.getUserById(userId);
+    // ✅ Delete all playlist-related data
+    await deleteAllPlaylistsForUser(userId);
 
-    if (userError || !user) {
-      return res.status(404).json({ error: "User not found" });
-    }
+    // ✅ Optional: delete row in public.users table
+    await supabaseAdmin.from("users").delete().eq("id", userId);
 
+    // ✅ Finally delete auth user
     const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
     if (error) throw error;
 
