@@ -134,7 +134,7 @@ import { computed, ref } from "vue";
     if (props.selectedPlaylistSongs.length > 50) {
       return "Export first 50 songs to YouTube";
     }
-    return "Export to YouTube";
+    return "Export Playlist to YouTube";
   });
 
   function exportToYouTube() {

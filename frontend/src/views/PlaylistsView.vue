@@ -70,6 +70,8 @@
           itemKey="id"
           :tag="'div'"
           ghost-class="bg-gray-100"
+          handle=".drag-handle"
+          :delay="0"
         >
           <template #item="{ element }">
             <div :key="element.id">

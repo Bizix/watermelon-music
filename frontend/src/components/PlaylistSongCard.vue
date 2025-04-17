@@ -5,10 +5,15 @@
      v-if="!props.removing"
      class="song-card w-full flex flex-col p-4 shadow-lg border-t"
      :data-song-id="props.song.id">
-     <div class="flex items-center gap-4 w-full">
+       <div class="flex items-center w-full">
+        <!-- drag handle -->
+        <i 
+          class="pi pi-bars drag-handle cursor-move text-2xl text-gray-400 hover:text-gray-600 mr-4"
+          title="Drag to reorder" 
+        />
         <!-- ✅ Album Art -->
         <img :src="props.song.art" :alt="props.song.album"
-           class="w-16 h-16 rounded-md object-cover border border-surface-400" />
+           class="w-16 h-16 rounded-md object-cover border border-surface-400 mr-3" />
         <!-- ✅ Song Info -->
         <div class="flex flex-col flex-grow">
            <p class="text-sm sm:text-lg font-semibold text-surface-900">
