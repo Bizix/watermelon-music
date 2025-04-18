@@ -13,7 +13,7 @@ async function scrapeMelonCharts(genreCode = "DM0000") {
       "--disable-dev-shm-usage"   // avoid /dev/shm crashes
     ],
     timeout: 0,                   // disable the 30s startup timeout
-    dumpio: true                  // pipe Chrome stdout/stderr into your logs
+    // dumpio: true                  // pipe Chrome stdout/stderr into your logs
   });
 
   const page = await browser.newPage();
