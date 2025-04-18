@@ -2,14 +2,27 @@ const puppeteer = require("puppeteer");
 
 async function scrapeMelonCharts(genreCode = "DM0000") {
   console.log(`🚀 Scraping Melon chart for genre: ${genreCode}...`);
+  const chromePath = puppeteer.executablePath();
 
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await puppeteer.launch({
+    headless: true,
+    executablePath: chromePath,
+    args: [
+      "--no-sandbox",             // bypass container sandbox restrictions
+      "--disable-setuid-sandbox", // same as above
+      "--disable-dev-shm-usage"   // avoid /dev/shm crashes
+    ],
+    timeout: 0,                   // disable the 30s startup timeout
+    dumpio: true                  // pipe Chrome stdout/stderr into your logs
+  });
+
   const page = await browser.newPage();
-
   const genreUrl = `https://www.melon.com/chart/day/index.htm?classCd=${genreCode}`;
   await page.goto(genreUrl, { waitUntil: "networkidle2" });
 
   console.log(`🟢 Opened Melon chart page for genre: ${genreCode}`);
+
+  
 
   const songs = await page.evaluate(() => {
     const songRows = document.querySelectorAll(".lst50, .lst100"); // Select rows directly
@@ -54,7 +67,6 @@ async function scrapeMelonCharts(genreCode = "DM0000") {
   });
 
   await browser.close();
-
   return songs;
 }
 
