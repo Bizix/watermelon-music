@@ -1,7 +1,11 @@
 const express = require("express");
 const router = express.Router();
-const { exchangeSpotifyCodeForToken } = require("../api/spotifyService");
+const {
+  exchangeSpotifyCodeForToken,
+  exportPlaylistToSpotify,
+} = require("../api/spotifyService");
 const { supabaseAdmin } = require("../config/supabaseAdmin");
+const verifySupabaseUser = require("../middlewares/verifySupabaseUser");
 require("dotenv").config();
 
 const CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
@@ -34,7 +38,6 @@ router.get("/callback", async (req, res) => {
         : "/";
     const user_id = parsedState.user_id;
 
-
     if (!user_id) return res.status(400).send("Missing user_id in state");
 
     const { accessToken, refreshToken, expiresIn } =
@@ -42,21 +45,22 @@ router.get("/callback", async (req, res) => {
     const expiresAt = Math.floor(Date.now() / 1000) + expiresIn;
 
     const { data: upsertResult, error: upsertError } = await supabaseAdmin
-            .from("users")
-            .upsert({
-            id: user_id,
-            spotify_access_token: accessToken,
-            spotify_refresh_token: refreshToken,
-            spotify_expires_at: expiresAt,
-            is_spotify_connected: true,
-            }).select();
-        
-        if (upsertError) {
-            console.error("❌ Failed to upsert user:", upsertError);
-            throw upsertError;
-        }
-  
-  console.log("✅ Upserted user:", upsertResult);
+      .from("users")
+      .upsert({
+        id: user_id,
+        spotify_access_token: accessToken,
+        spotify_refresh_token: refreshToken,
+        spotify_expires_at: expiresAt,
+        is_spotify_connected: true,
+      })
+      .select();
+
+    if (upsertError) {
+      console.error("❌ Failed to upsert user:", upsertError);
+      throw upsertError;
+    }
+
+    console.log("✅ Upserted user:", upsertResult);
 
     const redirectUrl = `${process.env.FRONTEND_URL}${from}?spotify=connected`;
     console.log("🔁 Redirecting to:", redirectUrl);
@@ -67,5 +71,33 @@ router.get("/callback", async (req, res) => {
     res.status(500).send("Failed to authenticate with Spotify");
   }
 });
+
+router.post("/export-playlist", verifySupabaseUser, async (req, res) => {
+    const userId = req.authenticatedUserId;
+    const { playlistId } = req.body;
+  
+    if (!playlistId || !userId) {
+      return res
+        .status(400)
+        .json({ error: "Missing playlistId or user not authenticated" });
+    }
+  
+    try {
+      const result = await exportPlaylistToSpotify(userId, playlistId);
+  
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+  
+      res.status(200).json({
+        success: true,
+        spotifyPlaylistId: result.spotifyPlaylistId,
+        playlistUrl: result.playlistUrl,
+      });
+    } catch (err) {
+      console.error("❌ Error exporting playlist:", err.message);
+      res.status(500).json({ error: "Server error while exporting playlist" });
+    }
+  });
 
 module.exports = router;

@@ -1,6 +1,7 @@
 const axios = require("axios");
 const pool = require("../config/db");
 const { generateSearchQueries } = require("../utils/queryUtils");
+const { supabaseAdmin } = require("../config/supabaseAdmin");
 
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
@@ -11,7 +12,9 @@ let spotifyAccessToken = null;
 let tokenExpirationTime = 0;
 
 if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) {
-  throw new Error("Missing Spotify client credentials in environment variables.");
+  throw new Error(
+    "Missing Spotify client credentials in environment variables."
+  );
 }
 
 // 🎫 Client Credentials Flow — used for public data (e.g. searching tracks)
@@ -59,7 +62,9 @@ async function exchangeSpotifyCodeForToken(code, redirectUri) {
         headers: {
           Authorization:
             "Basic " +
-            Buffer.from(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`).toString("base64"),
+            Buffer.from(
+              `${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`
+            ).toString("base64"),
           "Content-Type": "application/x-www-form-urlencoded",
         },
       }
@@ -71,7 +76,10 @@ async function exchangeSpotifyCodeForToken(code, redirectUri) {
       expiresIn: response.data.expires_in,
     };
   } catch (err) {
-    console.error("❌ Failed to exchange code:", err.response?.data || err.message);
+    console.error(
+      "❌ Failed to exchange code:",
+      err.response?.data || err.message
+    );
     throw err;
   }
 }
@@ -98,9 +106,7 @@ async function fetchFromSpotify(title, artist, album) {
 
       tracks = response.data.tracks.items;
       if (tracks && tracks.length > 0) {
-        console.log(
-          `🎵 Found ${tracks.length} results for query: ${query}`
-        );
+        console.log(`🎵 Found ${tracks.length} results for query: ${query}`);
         break;
       } else {
         console.warn(`⚠️ No results for query: ${query}`);
@@ -148,7 +154,9 @@ async function fetchSpotifyUrl(title, artist, album) {
     if (result.rows.length > 0) {
       const { spotify_url } = result.rows[0];
       if (spotify_url) {
-        console.log(`✅ Using existing Spotify URL for "${title}" - "${artist}"`);
+        console.log(
+          `✅ Using existing Spotify URL for "${title}" - "${artist}"`
+        );
         return spotify_url;
       }
     }
@@ -171,4 +179,107 @@ async function fetchSpotifyUrl(title, artist, album) {
   }
 }
 
-module.exports = { fetchFromSpotify, fetchSpotifyUrl, exchangeSpotifyCodeForToken };
+async function exportPlaylistToSpotify(userId, playlistId) {
+  const client = await pool.connect();
+  try {
+    // 1. Fetch user’s Spotify credentials
+    const { data: userData, error: userError } = await supabaseAdmin
+      .from("users")
+      .select("spotify_access_token, spotify_refresh_token, spotify_expires_at")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (userError || !userData) {
+      return {
+        success: false,
+        error: "User not found or Spotify not connected",
+      };
+    }
+
+    const { spotify_access_token: accessToken } = userData;
+
+    // 2. Fetch playlist data
+    const playlistResult = await client.query(
+      `SELECT name FROM playlists WHERE id = $1 AND user_id = $2`,
+      [playlistId, userId]
+    );
+    if (playlistResult.rows.length === 0) {
+      return { success: false, error: "Playlist not found" };
+    }
+
+    const songResult = await client.query(
+      `SELECT s.title, a.name AS artist
+       FROM playlist_songs ps
+       JOIN songs s ON ps.song_id = s.id
+       JOIN artists a ON s.artist_id = a.id
+       WHERE ps.playlist_id = $1
+       ORDER BY ps.position ASC`,
+      [playlistId]
+    );
+
+    const songs = songResult.rows;
+    if (!songs.length) {
+      return { success: false, error: "No songs in playlist" };
+    }
+
+    // 3. Search Spotify URIs for each track
+    const uris = [];
+    for (const { title, artist } of songs) {
+      const trackId = await fetchFromSpotify(title, artist, null);
+      if (trackId) {
+        uris.push(`spotify:track:${trackId}`);
+      }
+    }
+
+    if (uris.length === 0) {
+      return { success: false, error: "No tracks matched on Spotify" };
+    }
+
+    // 4. Create new Spotify playlist
+    const userResponse = await axios.get("https://api.spotify.com/v1/me", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    const spotifyUserId = userResponse.data.id;
+
+    const playlistCreation = await axios.post(
+      `https://api.spotify.com/v1/users/${spotifyUserId}/playlists`,
+      {
+        name: playlistResult.rows[0].name,
+        description: "Exported from WaterMelon Music",
+        public: false,
+      },
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }
+    );
+
+    const spotifyPlaylistId = playlistCreation.data.id;
+
+    // 5. Add tracks to the playlist
+    await axios.post(
+      `https://api.spotify.com/v1/playlists/${spotifyPlaylistId}/tracks`,
+      { uris },
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }
+    );
+
+    return {
+      success: true,
+      spotifyPlaylistId,
+      playlistUrl: playlistCreation.data.external_urls.spotify,
+    };
+  } catch (err) {
+    console.error("❌ Error exporting playlist:", err);
+    return { success: false, error: err.message };
+  } finally {
+    client.release();
+  }
+}
+
+module.exports = {
+  fetchFromSpotify,
+  fetchSpotifyUrl,
+  exchangeSpotifyCodeForToken,
+  exportPlaylistToSpotify,
+};

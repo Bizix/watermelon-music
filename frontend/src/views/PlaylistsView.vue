@@ -8,6 +8,7 @@
     :isOrderDirty="isOrderDirty"
     v-model="filterQuery"
     @connectSpotify="handleConnectSpotify"
+    @exportToSpotify="handleExportToSpotify"
     @create="handleCreatePlaylist"
     @back="handleBack"
     @saveOrder="handleSaveOrder"
@@ -378,6 +379,32 @@ export default {
       }
     }, 500); // waits 500ms after last drag before triggering
 
+    async function handleExportToSpotify() {
+      if (!selectedPlaylist.value) return;
+
+      try {
+        const accessToken = user.value?.access_token;
+
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/spotify/export-playlist`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ playlistId: selectedPlaylist.value.id }),
+        });
+
+        const result = await res.json();
+        if (res.ok && result.playlistUrl) {
+          window.open(result.playlistUrl, "_blank"); // 🎉 Opens playlist in Spotify
+        } else {
+          console.error("❌ Failed to export playlist:", result.error);
+        }
+      } catch (err) {
+        console.error("❌ Export to Spotify failed:", err);
+      }
+    }
+
 
     onMounted(fetchData);
 
@@ -409,6 +436,7 @@ export default {
       handleBack,
       handleReorder,
       handleSaveOrder,
+      handleExportToSpotify,
       showScrollIndicator,
       checkScroll,
       playlistScrollRef,

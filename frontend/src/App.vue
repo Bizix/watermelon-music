@@ -75,6 +75,11 @@ onMounted(() => {
   // 3) keep in sync with Supabase auth events
   authSubscription = supabase.auth.onAuthStateChange((_, session) => {
     user.value = session?.user ?? null;
+
+    if (user.value && session?.access_token) {
+      user.value.access_token = session.access_token;
+    }
+    
     if (user.value) {
       fetchPlaylists(user.value.id).then(pl => playlists.value = pl);
     } else {
