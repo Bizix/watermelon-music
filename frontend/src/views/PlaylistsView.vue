@@ -383,9 +383,7 @@ export default {
     async function handleExportToSpotify() {
       if (!selectedPlaylist.value) return;
 
-      try {
-        const accessToken = user.value?.access_token;
-
+      try {        
         const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/spotify/export-playlist`, {
           method: "POST",
           headers: {
