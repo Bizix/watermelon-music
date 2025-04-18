@@ -179,73 +179,53 @@ async function fetchSpotifyUrl(title, artist, album) {
   }
 }
 
-async function exportPlaylistToSpotify(userId, playlistId) {
+async function exportPlaylistToSpotify(userId, playlistId, accessToken) {
   const client = await pool.connect();
   try {
-    // 1. Fetch user’s Spotify credentials
-    const { data: userData, error: userError } = await supabaseAdmin
-      .from("users")
-      .select("spotify_access_token, spotify_refresh_token, spotify_expires_at")
-      .eq("id", userId)
-      .maybeSingle();
-
-    if (userError || !userData) {
-      return {
-        success: false,
-        error: "User not found or Spotify not connected",
-      };
-    }
-
-    const { spotify_access_token: accessToken } = userData;
-
-    // 2. Fetch playlist data
+    // 1️⃣ Fetch playlist name
     const playlistResult = await client.query(
       `SELECT name FROM playlists WHERE id = $1 AND user_id = $2`,
       [playlistId, userId]
     );
+
     if (playlistResult.rows.length === 0) {
       return { success: false, error: "Playlist not found" };
     }
 
+    // 2️⃣ Get Spotify URLs for songs in the playlist
     const songResult = await client.query(
-      `SELECT s.title, a.name AS artist
+      `SELECT s.spotify_url
        FROM playlist_songs ps
        JOIN songs s ON ps.song_id = s.id
-       JOIN artists a ON s.artist_id = a.id
-       WHERE ps.playlist_id = $1
+       WHERE ps.playlist_id = $1 AND s.spotify_url IS NOT NULL
        ORDER BY ps.position ASC`,
       [playlistId]
     );
 
-    const songs = songResult.rows;
-    if (!songs.length) {
-      return { success: false, error: "No songs in playlist" };
-    }
-
-    // 3. Search Spotify URIs for each track
-    const uris = [];
-    for (const { title, artist } of songs) {
-      const trackId = await fetchFromSpotify(title, artist, null);
-      if (trackId) {
-        uris.push(`spotify:track:${trackId}`);
-      }
-    }
+    const uris = songResult.rows
+      .map((row) => row.spotify_url)
+      .filter(Boolean)
+      .map((url) =>
+        url.startsWith("spotify:track:") ? url : `spotify:track:${url}`
+      );
 
     if (uris.length === 0) {
-      return { success: false, error: "No tracks matched on Spotify" };
+      return { success: false, error: "No valid Spotify tracks found" };
     }
 
-    // 4. Create new Spotify playlist
+    // 3️⃣ Get the Spotify user ID
     const userResponse = await axios.get("https://api.spotify.com/v1/me", {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
+
     const spotifyUserId = userResponse.data.id;
 
+    // 4️⃣ Create new playlist
     const playlistCreation = await axios.post(
       `https://api.spotify.com/v1/users/${spotifyUserId}/playlists`,
       {
         name: playlistResult.rows[0].name,
-        description: "Exported from WaterMelon Music",
+        description: "Exported from WaterMelon Music 🎶",
         public: false,
       },
       {
@@ -255,7 +235,7 @@ async function exportPlaylistToSpotify(userId, playlistId) {
 
     const spotifyPlaylistId = playlistCreation.data.id;
 
-    // 5. Add tracks to the playlist
+    // 5️⃣ Add tracks to the playlist
     await axios.post(
       `https://api.spotify.com/v1/playlists/${spotifyPlaylistId}/tracks`,
       { uris },
@@ -277,9 +257,36 @@ async function exportPlaylistToSpotify(userId, playlistId) {
   }
 }
 
+
+async function refreshSpotifyToken(refreshToken) {
+  try {
+    const response = await axios.post(
+      SPOTIFY_AUTH_URL,
+      new URLSearchParams({
+        grant_type: "refresh_token",
+        refresh_token: refreshToken,
+      }),
+      {
+        headers: {
+          Authorization: `Basic ${Buffer.from(
+            `${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`
+          ).toString("base64")}`,
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error("❌ Failed to refresh Spotify token:", error.response?.data || error.message);
+    return null;
+  }
+}
+
 module.exports = {
   fetchFromSpotify,
   fetchSpotifyUrl,
   exchangeSpotifyCodeForToken,
   exportPlaylistToSpotify,
+  refreshSpotifyToken
 };

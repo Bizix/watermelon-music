@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   exchangeSpotifyCodeForToken,
   exportPlaylistToSpotify,
+  refreshSpotifyToken
 } = require("../api/spotifyService");
 const { supabaseAdmin } = require("../config/supabaseAdmin");
 const verifySupabaseUser = require("../middlewares/verifySupabaseUser");
@@ -73,31 +74,73 @@ router.get("/callback", async (req, res) => {
 });
 
 router.post("/export-playlist", verifySupabaseUser, async (req, res) => {
-    const userId = req.authenticatedUserId;
-    const { playlistId } = req.body;
-  
-    if (!playlistId || !userId) {
-      return res
-        .status(400)
-        .json({ error: "Missing playlistId or user not authenticated" });
+  const userId = req.authenticatedUserId;
+  const { playlistId } = req.body;
+
+  if (!playlistId || !userId) {
+    return res
+      .status(400)
+      .json({ error: "Missing playlistId or user not authenticated" });
+  }
+
+  try {
+    // 🔑 Get user's tokens
+    const { data: userRow, error } = await supabaseAdmin
+      .from("users")
+      .select("spotify_access_token, spotify_refresh_token, spotify_expires_at")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (error || !userRow) {
+      return res.status(401).json({ error: "User or token not found" });
     }
-  
-    try {
-      const result = await exportPlaylistToSpotify(userId, playlistId);
-  
-      if (!result.success) {
-        return res.status(400).json({ error: result.error });
+
+    const {
+      spotify_access_token,
+      spotify_refresh_token,
+      spotify_expires_at,
+    } = userRow;
+
+    // ⏱ Check if access token is expired
+    const now = Math.floor(Date.now() / 1000);
+    let accessToken = spotify_access_token;
+
+    if (!accessToken || (spotify_expires_at && spotify_expires_at < now + 60)) {
+      console.log("♻️ Refreshing Spotify access token...");
+
+      const refreshed = await refreshSpotifyToken(spotify_refresh_token);
+      if (!refreshed?.access_token) {
+        return res.status(401).json({ error: "Failed to refresh Spotify token" });
       }
-  
-      res.status(200).json({
-        success: true,
-        spotifyPlaylistId: result.spotifyPlaylistId,
-        playlistUrl: result.playlistUrl,
-      });
-    } catch (err) {
-      console.error("❌ Error exporting playlist:", err.message);
-      res.status(500).json({ error: "Server error while exporting playlist" });
+
+      accessToken = refreshed.access_token;
+
+      // 📝 Update in Supabase
+      await supabaseAdmin
+        .from("users")
+        .update({
+          spotify_access_token: refreshed.access_token,
+          spotify_expires_at: now + refreshed.expires_in,
+        })
+        .eq("id", userId);
     }
-  });
+
+    // 🚀 Export using fresh token
+    const result = await exportPlaylistToSpotify(userId, playlistId, accessToken);
+
+    if (!result.success) {
+      return res.status(400).json({ error: result.error });
+    }
+
+    res.status(200).json({
+      success: true,
+      spotifyPlaylistId: result.spotifyPlaylistId,
+      playlistUrl: result.playlistUrl,
+    });
+  } catch (err) {
+    console.error("❌ Error exporting playlist:", err.message);
+    res.status(500).json({ error: "Server error while exporting playlist" });
+  }
+});
 
 module.exports = router;
