@@ -17,6 +17,7 @@ import AppHeader from "@/components/AppHeader.vue";
 
 const { isDarkMode, toggleDarkMode } = useDarkMode();
 const user      = ref(null);
+const accessToken = ref(null);
 const playlists = ref([]);
 const isSpotifyConnected = ref(false);
 
@@ -31,6 +32,7 @@ async function refreshUserState() {
   }
 
   user.value = session?.user ?? null;
+  accessToken.value = session?.access_token ?? null;
 
   if (user.value) {
     // ✅ Fetch additional Spotify connection status from `users` table
@@ -75,6 +77,7 @@ onMounted(() => {
   // 3) keep in sync with Supabase auth events
   authSubscription = supabase.auth.onAuthStateChange((_, session) => {
     user.value = session?.user ?? null;
+    accessToken.value = session?.access_token ?? null
 
     if (user.value && session?.access_token) {
       user.value.access_token = session.access_token;
@@ -100,6 +103,7 @@ onUnmounted(() => {
 
 // provide globally
 provide("user", user);
+provide("accessToken", accessToken);
 provide("playlists", playlists);
 provide("isSpotifyConnected", isSpotifyConnected);
 provide("isDarkMode", isDarkMode);

@@ -141,6 +141,7 @@ export default {
 
   setup() {
     const user = inject("user");
+    const accessToken = inject("accessToken");
     const playlists = inject("playlists"); 
     const filterQuery = ref("");
     const selectedPlaylistId = ref(null);
@@ -389,7 +390,7 @@ export default {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
+            Authorization: `Bearer ${accessToken.value}`,
           },
           body: JSON.stringify({ playlistId: selectedPlaylist.value.id }),
         });
