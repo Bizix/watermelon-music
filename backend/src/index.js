@@ -17,7 +17,9 @@ const app = express();
 
 const allowedOrigins = [
   'https://watermelon-music.vercel.app',
-  'http://localhost:5173'
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175'
 ];
 
 // ✅ Middleware
@@ -48,6 +50,11 @@ app.use("/api/lyrics", lyricsRoutes);
 app.use("/api/playlistRoutes", playlistRoutes);
 app.use("/api/spotify", spotifyRoutes);
 
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(500).json({ error: err.message });
+});
 
 if (!process.env.CHROME_PATH) {
   process.env.CHROME_PATH = require('puppeteer').executablePath();
@@ -71,4 +78,10 @@ app.get("/test-db", async (req, res) => {
 
 // ✅ Start Server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🌐 CORS enabled for origins: ${allowedOrigins.join(', ')}`);
+}).on('error', (err) => {
+  console.error('❌ Server failed to start:', err);
+  process.exit(1);
+});

@@ -174,83 +174,103 @@ async function saveToDatabase(genreCode = "DM0000") {
     // ✅ Ensure all songs exist with melon_song_id
     const songIds = {};
     for (const song of scrapedSongs) {
-      // console.log(`Attempting to insert song:`, song);
       let songRes;
-
+    
       try {
-        // 🟢 1️⃣ Check if song with this melon_song_id already exists
         const existingByMelonId = await client.query(
-          `SELECT id FROM songs WHERE melon_song_id = $1`,
+          `SELECT s.id, s.title, s.artist_id, s.album, a.name AS artist 
+           FROM songs s
+           JOIN artists a ON s.artist_id = a.id
+           WHERE s.melon_song_id = $1`,
           [song.key]
         );
-      
+    
         if (existingByMelonId.rows.length > 0) {
-          songRes = existingByMelonId;
-        } else {
-          // 🟢 2️⃣ If not, insert or update using (title, artist_id)
-          songRes = await client.query(
-            `INSERT INTO songs (
-                title, artist_id, album, art, melon_song_id,
-                youtube_url, youtube_last_updated, spotify_url, scraped_at
-             ) VALUES (
-                $1, $2, $3, $4, NULLIF($5, 0),
-                NULL, NULL, NULL, NOW()
-             )
-             ON CONFLICT (title, artist_id)
-             DO UPDATE SET
-                album = EXCLUDED.album,
-                art = EXCLUDED.art,
-                -- Only update melon_song_id if it was previously NULL or 0
-                melon_song_id = CASE
-                  WHEN songs.melon_song_id IS NULL OR songs.melon_song_id = 0
-                  THEN NULLIF(EXCLUDED.melon_song_id, 0)
-                  ELSE songs.melon_song_id
-                END,
-                scraped_at = NOW()
-             RETURNING id`,
-            [
-              song.title,
-              artistIds[song.artist],
-              song.album,
-              song.art,
-              song.key,
-            ]
-          );
+          const existingSong = existingByMelonId.rows[0];
+    
+          const isMatching =
+            existingSong.title === song.title &&
+            existingSong.artist === song.artist &&
+            existingSong.album === song.album;
+    
+          if (!isMatching) {
+            console.log(`⚠️ Found incorrect melon_song_id match. Deleting old song:`, {
+              old: existingSong,
+              new: song,
+            });
+            
+            // 🛠 DELETE the wrong song and its associated records in separate queries
+            await client.query(`DELETE FROM song_lyrics WHERE song_id = $1`, [existingSong.id]);
+            await client.query(`DELETE FROM song_rankings WHERE song_id = $1`, [existingSong.id]);
+            await client.query(`DELETE FROM songs WHERE id = $1`, [existingSong.id]);
+          }
         }
+    
+        // 🟢 Insert or update by (title, artist_id) normally after ensuring no conflict
+        songRes = await client.query(
+          `INSERT INTO songs (
+              title, artist_id, album, art, melon_song_id,
+              youtube_url, youtube_last_updated, spotify_url, scraped_at
+           ) VALUES (
+              $1, $2, $3, $4, NULLIF($5, 0),
+              NULL, NULL, NULL, NOW()
+           )
+           ON CONFLICT (title, artist_id)
+           DO UPDATE SET
+              album = EXCLUDED.album,
+              art = EXCLUDED.art,
+              melon_song_id = CASE
+                WHEN songs.melon_song_id IS NULL OR songs.melon_song_id = 0
+                THEN NULLIF(EXCLUDED.melon_song_id, 0)
+                ELSE songs.melon_song_id
+              END,
+              scraped_at = NOW()
+           RETURNING id`,
+          [
+            song.title,
+            artistIds[song.artist],
+            song.album,
+            song.art,
+            song.key,
+          ]
+        );
       } catch (error) {
         console.error(`❌ Unexpected DB error while saving song:`, song);
         console.error(error);
         await client.query("ROLLBACK");
         throw error;
       }
-      
-      // ✅ 3️⃣ Safely extract ID
+    
       if (!songRes || !songRes.rows || songRes.rows.length === 0) {
         console.error(`❌ Could not retrieve song ID for ${song.title}`);
         continue;
       }
-      
+    
       const songId = songRes.rows[0].id;
       songIds[`${song.title}-${song.artist}`] = songId;
       newSongIds.add(songId);
-      
     }
-
+    
     for (const song of scrapedSongs) {
       const songId = songIds[`${song.title}-${song.artist}`];
     
       if (!songId) {
-        console.error(`❌ Missing song ID for: ${song.title} by ${song.artist}`);
-        continue; // ✅ Skip inserting if we don't have a song ID
+        console.error(`❌ Missing or invalid song ID for: ${song.title} by ${song.artist} - Skipping.`);
+        continue; // ✅ Skip if no valid songId
       }
     
-      await client.query(
-        `INSERT INTO song_rankings (song_id, genre_id, rank, movement, scraped_at) 
-         VALUES ($1, $2, $3, $4, NOW()) 
-         ON CONFLICT (song_id, genre_id) 
-         DO UPDATE SET rank = EXCLUDED.rank, movement = EXCLUDED.movement, scraped_at = NOW()`,
-        [songId, genreId, song.rank, song.movement]
-      );
+      try {
+        await client.query(
+          `INSERT INTO song_rankings (song_id, genre_id, rank, movement, scraped_at) 
+           VALUES ($1, $2, $3, $4, NOW()) 
+           ON CONFLICT (song_id, genre_id) 
+           DO UPDATE SET rank = EXCLUDED.rank, movement = EXCLUDED.movement, scraped_at = NOW()`,
+          [songId, genreId, song.rank, song.movement]
+        );
+      } catch (error) {
+        console.error(`❌ Failed inserting song ranking for song_id ${songId}:`, error.message);
+        continue; // ✅ Don't break transaction, skip to next song
+      }
     }
     
 
