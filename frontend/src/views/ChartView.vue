@@ -9,12 +9,12 @@
     />
 
     <!-- ✅ Loading Spinner -->
-    <div v-if="isLoading" class="flex flex-grow items-center justify-center">
+    <div v-if="isLoading" class="flex flex-1 items-center justify-center px-4 py-8">
       <LoadingSpinner :isLoading="true" message="Loading data..." size="w-10 h-10" color="fill-green-500" />
     </div>
 
     <!-- ✅ Song List -->
-    <div v-if="!isLoading" ref="songListRef" class="overflow-y-auto flex-grow w-full scrollbar-hidden" @scroll="checkScroll">
+    <div v-if="!isLoading" ref="songListRef" class="min-h-0 flex-1 overflow-y-auto scrollbar-hidden" @scroll="checkScroll">
       <SongCard 
       v-for="song in filteredRankings"
       :key="song.id" 
@@ -28,7 +28,7 @@
 </template>
 
 <script>
-import { ref, watchEffect, onMounted, inject } from "vue";
+import { ref, watch, onMounted } from "vue";
 import GenreSelector from "@/components/GenreSelector.vue";
 import LoadingSpinner from "@/components/LoadingSpinner.vue";
 import SongCard from "@/components/SongCard.vue";
@@ -68,19 +68,12 @@ export default {
     const songListRef = ref(null);
     const { showScrollIndicator, checkScroll } = useScrollIndicator(songListRef);
 
-    // New reactive state to track the active dropdown's song id.
     const activeDropdownSongId = ref(null);
 
-    // When a song card toggles, update the active dropdown id.
-      function updateActiveDropdown(songId) {
+    function updateActiveDropdown(songId) {
       activeDropdownSongId.value = activeDropdownSongId.value === songId ? null : songId;
     }
 
-    // ✅ Inject global dark mode state & toggle function
-    const isDarkMode = inject("isDarkMode");
-    const toggleDarkMode = inject("toggleDarkMode");
-
-    // ✅ Fetch rankings with error handling
     async function fetchData(genre) {
       isLoading.value = true;
       try {
@@ -92,18 +85,16 @@ export default {
       }
     }
 
-    // ✅ Handle genre change
     async function handleGenreChange(newGenre) {
       selectedGenre.value = newGenre;
       await fetchData(newGenre);
     }
 
-    // ✅ Filter out songs with null ranks
     const filteredRankings = ref([]);
-      watchEffect(() => {
+    watch(rankings, () => {
       filteredRankings.value = rankings.value.filter((song) => song.rank !== 0);
       checkScroll();
-    });
+    }, { immediate: true });
 
     // ✅ Fetch initial rankings on mount
     onMounted(() => {
@@ -120,8 +111,6 @@ export default {
       filteredRankings,
       genreMap,
       songListRef,
-      isDarkMode,
-      toggleDarkMode,
       activeDropdownSongId,
       updateActiveDropdown,
     };

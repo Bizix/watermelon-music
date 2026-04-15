@@ -28,15 +28,39 @@ html {
   --font-korean: "Noto Sans KR", sans-serif;
 }
 
+html {
+  background:
+    radial-gradient(circle at top, rgba(22, 163, 74, 0.18), transparent 36%),
+    linear-gradient(180deg, #f6fbf7 0%, #edf6ef 100%);
+}
 
-/* ✅ Hide scrollbar for WebKit (Chrome, Safari, Edge) */
+body {
+  min-height: 100dvh;
+  color: rgb(24, 24, 27);
+  overflow-x: hidden;
+}
+
+body,
+#app {
+  min-height: 100dvh;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+
 .scrollbar-hidden::-webkit-scrollbar {
   width: 0px;
   height: 0px;
   background: transparent;
 }
 
-/* ✅ Hide scrollbar for Firefox */
 .scrollbar-hidden {
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -46,7 +70,6 @@ html {
 
 @media (prefers-color-scheme: light) {
 
-  /* ✅ Global: Bouncing animation for the scroll indicator */
   .animate-bounce {
     animation: bounce 1.5s infinite;
   }
@@ -61,4 +84,3 @@ html {
     }
   }
 }
-

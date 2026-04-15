@@ -23,7 +23,7 @@ const frontend = startService('npm', ['run', 'dev'], {
 });
 
 // Start tailwind
-const tailwind = startService('npx', ['@tailwindcss/cli', '-i', './src/input.css', '-o', './src/output.css', '--watch'], {
+const tailwind = startService('npm', ['run', 'build:css', '--', '--watch'], {
   cwd: path.join(__dirname, '../frontend'),
   shell: true
 });

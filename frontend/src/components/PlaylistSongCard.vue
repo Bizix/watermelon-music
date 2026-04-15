@@ -3,31 +3,27 @@
   <div 
      v-bind="attrs" 
      v-if="!props.removing"
-     class="song-card w-full flex flex-col p-4 shadow-lg border-t"
+     class="song-card w-full border-t p-4 shadow-lg"
      :data-song-id="props.song.id">
-       <div class="flex items-center w-full">
-        <!-- drag handle -->
+       <div class="flex w-full items-start gap-3 sm:items-center">
         <i 
-          class="pi pi-bars drag-handle cursor-move text-2xl text-gray-400 hover:text-gray-600 mr-4"
+          class="pi pi-bars drag-handle mr-1 cursor-move text-2xl text-gray-400 hover:text-gray-600 sm:mr-4"
           title="Drag to reorder" 
         />
-        <!-- ✅ Album Art -->
         <img :src="props.song.art" :alt="props.song.album"
-           class="w-16 h-16 rounded-md object-cover border border-surface-400 mr-3" />
-        <!-- ✅ Song Info -->
-        <div class="flex flex-col flex-grow">
-           <p class="text-sm sm:text-lg font-semibold text-surface-900">
+           class="h-14 w-14 rounded-md border border-surface-400 object-cover sm:h-16 sm:w-16" />
+        <div class="min-w-0 flex-1">
+           <p class="truncate text-sm font-semibold text-surface-900 sm:text-lg">
               {{ props.song.title }}
            </p>
-           <p class="text-sm sm:text-lg text-surface-800">
+           <p class="truncate text-sm text-surface-800 sm:text-lg">
               {{ props.song.artist }}
            </p>
-           <p class="text-sm italic text-surface-600">
+           <p class="truncate text-sm italic text-surface-600">
               {{ props.song.album }}
            </p>
         </div>
-        <!-- ✅ Action Buttons -->
-        <div class="flex flex-col sm:flex-row items-center sm:items-center gap-2 sm:gap-4 mt-2 sm:mt-0">
+        <div class="ml-auto flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:gap-4">
            <template v-for="(button, index) in actionButtons" :key="index">
               <a v-if="button.url" :href="button.url" target="_blank" class="text-xl" :class="button.color">
               <i :class="button.icon"></i>
@@ -170,7 +166,6 @@ function handleAddToPlaylist(playlistId) {
       activeModalComponent.value = null;
     }
 
-      // ADD: Computed property for action buttons
       const actionButtons = computed(() => [
       props.song.youtube_url && {
         url: `https://www.youtube.com/watch?v=${props.song.youtube_url}`,

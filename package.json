@@ -9,8 +9,5 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "dependencies": {
-    "aromanize": "^0.1.5",
-    "lodash": "^4.17.21"
-  }
+  "dependencies": {}
 }

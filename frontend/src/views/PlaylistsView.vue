@@ -26,7 +26,7 @@
     <div
       v-if="!isLoading && !creatingPlaylist"
       ref="playlistScrollRef"
-      class="overflow-y-auto flex-grow w-full scrollbar-hidden"
+      class="min-h-0 flex-1 overflow-y-auto scrollbar-hidden"
       @scroll="checkScroll"
     >
       <!-- 1️⃣ Detail is loading, show a single spinner -->
@@ -105,12 +105,12 @@
   <Modal
     v-if="activeModalComponent"
     :modalComponent="activeModalComponent"
-    :props="activeModalProps"
+    :modalProps="activeModalProps"
     @close="activeModalComponent = null"
   />
 </template>
 <script>
-import { ref, onMounted, watchEffect, nextTick, inject, computed, provide, watch } from "vue";
+import { ref, onMounted, inject, computed, watch } from "vue";
 
 import { fetchPlaylists } from "@/api/fetchPlaylists";
 import { usePlaylist } from "@/composables/usePlaylist";
@@ -124,7 +124,6 @@ import ScrollIndicator from "@/components/ScrollIndicator.vue";
 import useScrollIndicator from "@/composables/useScrollIndicator.ts";
 import Modal from "@/components/Modal.vue";
 import Draggable from "vuedraggable";
-import debounce from "lodash/debounce";
 
 
 export default {
@@ -331,14 +330,7 @@ export default {
       const currentPath = window.location.pathname || "/";
       const loginUrl = `${import.meta.env.VITE_API_BASE_URL}/api/spotify/login?from=${encodeURIComponent(currentPath)}&user_id=${user.value.id}`;
 
-      console.log("🔗 Redirecting to:", loginUrl);
       window.location.href = loginUrl;
-    }
-
-
-    function handleExportToSpotify(playlistId) {
-      console.log("📤 Export to Spotify:", playlistId);
-      // TODO: API call to export playlist
     }
 
     async function handleCreatePlaylist(name) {
@@ -364,21 +356,6 @@ export default {
       selectedPlaylistId.value = null;
     }
 
-
-    const handleReorder = debounce(async () => {
-      if (!selectedPlaylist.value) return;
-
-      const reorderedIds = selectedPlaylist.value.songs.map(song => song.id);
-
-      try {
-        const success = await reorderPlaylistSongs(selectedPlaylist.value.id, reorderedIds);
-        if (success) {
-          console.log("✅ Reorder saved to backend");
-        }
-      } catch (err) {
-        console.error("❌ Failed to save new order:", err);
-      }
-    }, 500); // waits 500ms after last drag before triggering
 
     async function handleExportToSpotify() {
       if (!selectedPlaylist.value) return;
@@ -407,9 +384,13 @@ export default {
 
     onMounted(fetchData);
 
-    watchEffect(() => {
-      checkScroll();
-    });
+    watch(
+      [playlistScrollRef, isLoading, isDetailLoading, creatingPlaylist, selectedPlaylist, filteredPlaylists],
+      () => {
+        checkScroll();
+      },
+      { immediate: true, deep: true }
+    );
     
     watch(
       () => selectedPlaylist.value?.songs?.map(s => s.id),
@@ -433,9 +414,7 @@ export default {
       handleConnectSpotify,
       handleExportToSpotify,
       handleBack,
-      handleReorder,
       handleSaveOrder,
-      handleExportToSpotify,
       showScrollIndicator,
       checkScroll,
       playlistScrollRef,

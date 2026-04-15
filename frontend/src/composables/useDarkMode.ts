@@ -1,4 +1,4 @@
-import { ref, onMounted, provide } from "vue";
+import { ref, onMounted } from "vue";
 
 export function useDarkMode() {
   const isDarkMode = ref(false);
@@ -17,9 +17,6 @@ export function useDarkMode() {
       document.documentElement.classList.add("app-dark");
     }
   });
-
-  provide("isDarkMode", isDarkMode);
-  provide("toggleDarkMode", toggleDarkMode);
 
   return { isDarkMode, toggleDarkMode };
 }

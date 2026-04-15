@@ -1,7 +1,8 @@
-import { ref, onMounted, onUnmounted } from "vue";
+import { nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 
 export default function useScrollIndicator(scrollElementRef: any) {
   const showScrollIndicator = ref(true);
+  let activeElement: HTMLElement | null = null;
 
   function checkScroll() {
     if (scrollElementRef.value) {
@@ -14,19 +15,39 @@ export default function useScrollIndicator(scrollElementRef: any) {
     }
   }
 
-  onMounted(() => {
-    if (scrollElementRef.value) {
-      scrollElementRef.value.addEventListener("scroll", checkScroll);
-      checkScroll(); // ✅ Initial check
+  function detachListener() {
+    if (activeElement) {
+      activeElement.removeEventListener("scroll", checkScroll);
+      activeElement = null;
     }
+  }
+
+  async function bindListener() {
+    await nextTick();
+    detachListener();
+
+    const currentElement = scrollElementRef.value;
+    if (currentElement) {
+      activeElement = currentElement;
+      currentElement.addEventListener("scroll", checkScroll, { passive: true });
+    }
+
+    checkScroll();
+  }
+
+  watch(scrollElementRef, () => {
+    bindListener();
+  });
+
+  onMounted(() => {
+    bindListener();
+    window.addEventListener("resize", checkScroll);
   });
 
   onUnmounted(() => {
-    if (scrollElementRef.value) {
-      scrollElementRef.value.removeEventListener("scroll", checkScroll);
-    }
+    detachListener();
+    window.removeEventListener("resize", checkScroll);
   });
 
   return { showScrollIndicator, checkScroll };
 }
-

@@ -1,9 +1,8 @@
 <template>
-  <div class="song-card w-full flex flex-col p-4 shadow-lg border-t"
+  <div class="song-card w-full border-t p-4 shadow-lg"
     :data-id="song.id" :data-song-id="song.melon_song_id">
-    <div class="flex items-center sm:gap-4 w-full">
-      <!-- ✅ Rank with Movement -->
-      <div class="flex items-center sm:min-w-[30px] justify-center sm:gap-1">
+    <div class="flex w-full items-start gap-3 sm:items-center sm:gap-4">
+      <div class="flex min-w-[3.25rem] items-center justify-center gap-1 self-center sm:min-w-[4rem]">
         <span class="font-bold text-lg text-primary-500 pr-1">
           {{ song.rank }}
         </span>
@@ -22,21 +21,19 @@
         </span>
       </div>
       <!-- ✅ Album Art -->
-      <img :src="song.art" :alt="song.album" class="w-16 h-16 ml-1 mr-3 sm:m-0 rounded-md object-cover border border-surface-400" />
-      <!-- ✅ Song Info -->
-      <div class="flex flex-col flex-grow">
-        <p class="text-sm sm:text-lg font-semibold text-surface-900">
+      <img :src="song.art" :alt="song.album" class="h-14 w-14 rounded-md border border-surface-400 object-cover sm:h-16 sm:w-16" />
+      <div class="min-w-0 flex-1">
+        <p class="truncate text-sm font-semibold text-surface-900 sm:text-lg">
           {{ song.title }}
         </p>
-        <p class="text-sm sm:text-lg text-surface-800">
+        <p class="truncate text-sm text-surface-800 sm:text-lg">
           {{ song.artist }}
         </p>
-        <p class="text-sm italic text-surface-600">
+        <p class="truncate text-sm italic text-surface-600">
           {{ song.album }}
         </p>
       </div>
-      <!-- ✅ Action Buttons -->
-      <div class="flex flex-col sm:flex-row items-center sm:gap-3">
+      <div class="ml-auto flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:gap-3">
         <template v-for="(button, index) in actionButtons" :key="index">
           <a v-if="button.url" :href="button.url" target="_blank" class="text-xl" :class="button.color">
             <i :class="button.icon"></i>
@@ -146,7 +143,6 @@
 
 <script>
 import { ref, inject, onMounted, onUnmounted, computed } from "vue";
-import { supabase } from "@/lib/supabaseClient";
 import { usePlaylist } from "@/composables/usePlaylist";
 import { fetchLyrics as getLyrics } from "@/api/fetchLyrics";
 
@@ -177,7 +173,7 @@ export default {
     const isPlaylistLoading = ref(false);
     const isDarkMode = inject("isDarkMode");
     const playlists = inject("playlists");
-    const { fetchPlaylists, createPlaylist, addToPlaylist, removeFromPlaylist } = usePlaylist();
+    const { createPlaylist, addToPlaylist, removeFromPlaylist } = usePlaylist();
     const user = inject("user");
     const showNewPlaylistInput = ref(false);
     const newPlaylistName = ref("");
@@ -193,22 +189,9 @@ export default {
 
     onUnmounted(() => {
       document.removeEventListener("click", closeMenuOnOutsideClick);
-      if (playlistMenuRef.value) {
-        playlistMenuRef.value.removeEventListener("scroll", checkScroll);
-      }
     });
 
-    async function fetchUser() {
-      const { data: session } = await supabase.auth.getSession();
-      if (session?.user) {
-        user.value = session.user;
-        await fetchPlaylists();
-      }
-    }
-    fetchUser();
-
-    // Create a computed property that returns true if this song's dropdown should be open.
-     const isDropdownOpen = computed(() => props.activeDropdownSongId === props.song.id);
+    const isDropdownOpen = computed(() => props.activeDropdownSongId === props.song.id);
 
     function closeMenuOnOutsideClick(event) {
       setTimeout(() => {
@@ -230,7 +213,6 @@ export default {
       return 'text-gray-500';
     });
 
-    // ADD: Computed property for action buttons
     const actionButtons = computed(() => [
       props.song.youtube_url && {
         url: `https://www.youtube.com/watch?v=${props.song.youtube_url}`,
@@ -309,21 +291,6 @@ export default {
       }
     }
 
-    async function toggleSongInPlaylist(playlistId) {
-      const playlist = playlists.value.find(p => p.id === playlistId);
-      if (!playlist) return;
-      const updatedSongs = playlist.songs.includes(props.song.melon_song_id)
-        ? playlist.songs.filter(songId => songId !== props.song.melon_song_id)
-        : [...playlist.songs, props.song.melon_song_id];
-      const { error } = await supabase
-        .from("playlists")
-        .update({ songs: updatedSongs })
-        .eq("id", playlistId);
-      if (!error) {
-        playlist.songs = updatedSongs;
-      }
-    }
-
     // Modify toggleNewPlaylistInput to open the dropdown if it isn't open.
     function toggleNewPlaylistInput() {
       if (!isDropdownOpen.value) {
@@ -371,10 +338,7 @@ export default {
       isDropdownOpen,
       showNewPlaylistInput,
       newPlaylistName,
-      fetchUser,
-      fetchPlaylists,
       createPlaylist,
-      toggleSongInPlaylist,
       togglePlaylistMenu,
       playlistMenuRef,
       playlistContainerRef,
