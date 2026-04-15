@@ -1,12 +1,15 @@
 const express = require("express");
 const router = express.Router();
 const { getCache } = require("../services/cacheService");
-const { getRankings, getScrapeStatus, shouldScrapeGenre} = require("../services/rankingsService");
-const { scrapeAndSaveGenre } = require("../services/scraperService");
+const { getRankings } = require("../services/rankingsService");
+const {
+  getGenreRefreshStatus,
+  queueGenreRefresh,
+} = require("../services/chartRefreshService");
 
-router.get("/scrape-status", (req, res) => {
+router.get("/scrape-status", async (req, res) => {
   const genreCode = req.query.genre || "DM0000";
-  res.json({ scraping: getScrapeStatus(genreCode) });
+  res.json(await getGenreRefreshStatus(genreCode));
 });
 
 // ✅ Fetch Rankings (Checks Cache, Scrapes if Needed)
@@ -20,11 +23,7 @@ router.get("/rankings", async (req, res) => {
       return res.json(cachedData);
     }
 
-    // ✅ Determine if scraping is needed
-    if (await shouldScrapeGenre(genreCode)) {
-      console.log(`🔄 Scraping initiated for genre: ${genreCode}`);
-      await scrapeAndSaveGenre(genreCode);
-    }
+    await queueGenreRefresh(genreCode, { reason: "rankings_request" });
 
     const rankings = await getRankings(genreCode);
 

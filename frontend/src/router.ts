@@ -1,26 +1,22 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { supabase } from "./lib/supabaseClient";
 
-import ChartView from "@/views/ChartView.vue";
-import PlaylistsView from "@/views/PlaylistsView.vue";
-import CallbackView from "@/views/CallbackView.vue";
-
 const routes = [
   {
     path: "/",
     name: "Charts",
-    component: ChartView,
+    component: () => import("@/views/ChartView.vue"),
   },
   {
     path: "/playlists",
     name: "Playlists",
-    component: PlaylistsView,
+    component: () => import("@/views/PlaylistsView.vue"),
     meta: { requiresAuth: true },
   },
   { 
     path: "/callback", 
     name: "SpotifyCallback",
-    component: CallbackView 
+    component: () => import("@/views/CallbackView.vue"),
   },
 ];
 
@@ -29,8 +25,7 @@ const router = createRouter({
   routes,
 });
 
-// Global navigation guard to check authentication
-router.beforeEach(async (to, from, next) => {
+router.beforeEach(async (to, _from, next) => {
   if (to.meta.requiresAuth) {
     // Use Supabase to check if a session exists
     const {

@@ -1,107 +1,115 @@
 <template>
-  <div id="app" data-v-app class="min-h-screen flex justify-center relative">
-    <div class="w-[100vw] max-w-[60.7rem] mx-auto chart-container pt-3 w-full flex flex-col h-screen">
-      <AppHeader />
-      <!-- keep this keyed so it remounts when auth & route change -->
-      <router-view :key="$route.fullPath" />
+  <div id="app" data-v-app class="min-h-[100dvh] overflow-x-hidden">
+    <div class="mx-auto flex min-h-[100dvh] w-full max-w-[60.7rem] flex-col px-3 pb-4 pt-3 sm:px-4 lg:px-6">
+      <AppHeader class="shrink-0" />
+      <main class="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-[2rem] border border-black/5 bg-white/80 shadow-[0_18px_50px_rgba(15,23,42,0.08)] backdrop-blur-sm">
+        <router-view :key="$route.fullPath" />
+      </main>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, provide, onMounted, onUnmounted } from "vue";
+import { onMounted, onUnmounted, provide, ref } from "vue";
 import { supabase } from "@/lib/supabaseClient";
 import { fetchPlaylists } from "@/api/fetchPlaylists";
 import { useDarkMode } from "@/composables/useDarkMode";
 import AppHeader from "@/components/AppHeader.vue";
 
 const { isDarkMode, toggleDarkMode } = useDarkMode();
-const user      = ref(null);
+const user = ref(null);
 const accessToken = ref(null);
 const playlists = ref([]);
 const isSpotifyConnected = ref(false);
 
-// fetch user & playlists
-async function refreshUserState() {
-  console.log("🔄 Refreshing user state...");
+let authSubscription = null;
+let refreshPromise = null;
 
-  const { data: { session }, error } = await supabase.auth.getSession();
-  if (error) {
-    console.error("❌ Error fetching session:", error);
-    return;
+async function refreshUserState() {
+  if (refreshPromise) {
+    return refreshPromise;
   }
 
-  user.value = session?.user ?? null;
-  accessToken.value = session?.access_token ?? null;
+  refreshPromise = (async () => {
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.getSession();
 
-  if (user.value) {
-    // ✅ Fetch additional Spotify connection status from `users` table
-    const { data, error: userTableError } = await supabase
-    .from("users")
-    .select("is_spotify_connected")
-    .eq("id", user.value.id)
-    .maybeSingle();
+    if (error) {
+      console.error("Error fetching session:", error);
+      return;
+    }
 
-      if (userTableError) {
-      console.warn("⚠️ Failed to fetch user Spotify status:", userTableError.message);
-      } else if (!data) {
-        console.warn("⚠️ No row found in users table for:", user.value.id);
-      } else {
-        isSpotifyConnected.value = !!data.is_spotify_connected;
-        console.log("🎧 isSpotifyConnected:", isSpotifyConnected.value);
-      }
+    user.value = session?.user ?? null;
+    accessToken.value = session?.access_token ?? null;
 
-    // Also update playlists if needed
-    playlists.value = await fetchPlaylists(user.value.id);
-  } else {
-    playlists.value = [];
+    if (!user.value) {
+      playlists.value = [];
+      isSpotifyConnected.value = false;
+      return;
+    }
+
+    const [playlistResult, spotifyStatusResult] = await Promise.allSettled([
+      fetchPlaylists(),
+      supabase
+        .from("users")
+        .select("is_spotify_connected")
+        .eq("id", user.value.id)
+        .maybeSingle(),
+    ]);
+
+    playlists.value =
+      playlistResult.status === "fulfilled" ? playlistResult.value : [];
+
+    if (spotifyStatusResult.status === "fulfilled") {
+      isSpotifyConnected.value = !!spotifyStatusResult.value.data?.is_spotify_connected;
+    } else {
+      isSpotifyConnected.value = false;
+      console.error("Error fetching Spotify connection state:", spotifyStatusResult.reason);
+    }
+  })();
+
+  try {
+    await refreshPromise;
+  } finally {
+    refreshPromise = null;
   }
 }
 
-let authSubscription;
+function handleFocus() {
+  refreshUserState();
+}
+
 function onVisibilityChange() {
   if (!document.hidden) {
-    // page became visible → rehydrate session
     refreshUserState();
   }
 }
 
 onMounted(() => {
-  // 1) initial load
   refreshUserState();
 
-  // 2) rehydrate on tab focus / visibility change
-  window.addEventListener("focus", refreshUserState);
+  window.addEventListener("focus", handleFocus);
   document.addEventListener("visibilitychange", onVisibilityChange);
 
-  // 3) keep in sync with Supabase auth events
   authSubscription = supabase.auth.onAuthStateChange((_, session) => {
     user.value = session?.user ?? null;
-    accessToken.value = session?.access_token ?? null
-
-    if (user.value && session?.access_token) {
-      user.value.access_token = session.access_token;
-    }
-    
-    if (user.value) {
-      fetchPlaylists(user.value.id).then(pl => playlists.value = pl);
-    } else {
-      playlists.value = [];
-    }
+    accessToken.value = session?.access_token ?? null;
+    refreshUserState();
   });
 });
 
 onUnmounted(() => {
-  window.removeEventListener("focus", refreshUserState);
+  window.removeEventListener("focus", handleFocus);
   document.removeEventListener("visibilitychange", onVisibilityChange);
 
-  // clean up Supabase listener
-  if (authSubscription && typeof authSubscription.subscription?.unsubscribe === "function") {
-    authSubscription.subscription.unsubscribe();
+  const subscription = authSubscription?.data?.subscription;
+  if (subscription && typeof subscription.unsubscribe === "function") {
+    subscription.unsubscribe();
   }
 });
 
-// provide globally
 provide("user", user);
 provide("accessToken", accessToken);
 provide("playlists", playlists);

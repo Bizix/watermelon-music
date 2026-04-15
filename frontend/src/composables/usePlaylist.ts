@@ -1,20 +1,19 @@
 import { ref } from "vue";
-import { API_BASE_URL } from "../config";
-import { fetchPlaylists } from "../api/fetchPlaylists";
-import { supabase } from "@/lib/supabaseClient";
-
-async function getAccessToken(): Promise<string | null> {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  return session?.access_token || null;
-}
+import {
+  addSongToPlaylistRecord,
+  createPlaylistRecord,
+  deletePlaylistRecord,
+  fetchPlaylistSummaries,
+  removeSongFromPlaylistRecord,
+  renamePlaylistRecord,
+  reorderPlaylistSongRecords,
+} from "@/api/playlistStore";
 
 interface Playlist {
-  id: string;
+  id: number;
   name: string;
   userId: string;
-  songs: string[];
+  songs: number[];
 }
 
 export function usePlaylist() {
@@ -22,14 +21,35 @@ export function usePlaylist() {
   const isLoading = ref<boolean>(false);
   const errorMessage = ref<string>("");
 
-  // ✅ Fetch and update playlists state using the external API function
-  async function loadPlaylists(userId: string) {
-    if (!userId) return;
+  function setErrorMessage(error: unknown, fallbackMessage: string) {
+    errorMessage.value =
+      error instanceof Error && error.message ? error.message : fallbackMessage;
+  }
+
+  async function runPlaylistRequest<T>(
+    operation: () => Promise<T>,
+    fallbackMessage: string
+  ): Promise<T | null> {
     isLoading.value = true;
     errorMessage.value = "";
 
     try {
-      playlists.value = await fetchPlaylists(); // ✅ Uses fetchPlaylists from api/
+      return await operation();
+    } catch (error) {
+      setErrorMessage(error, fallbackMessage);
+      return null;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // ✅ Fetch and update playlists state using the external API function
+  async function loadPlaylists() {
+    isLoading.value = true;
+    errorMessage.value = "";
+
+    try {
+      playlists.value = await fetchPlaylistSummaries();
     } catch (error) {
       errorMessage.value = "An error occurred while fetching playlists.";
     } finally {
@@ -38,246 +58,79 @@ export function usePlaylist() {
   }
 
   // ✅ Create a new playlist
-  async function createPlaylist(name: string): Promise<Playlist | void> {
-    if (!name.trim()) return;
+  async function createPlaylist(name: string): Promise<Playlist | null> {
+    if (!name.trim()) return null;
 
-    isLoading.value = true;
-    errorMessage.value = "";
-
-    const token = await getAccessToken();
-    if (!token) {
-      errorMessage.value = "User not authenticated.";
-      return;
-    }
-
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/playlistRoutes/create`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ name }),
-        }
-      );
-
-      const result: Playlist = await response.json();
-
-      if (!response.ok || (result as { error?: string }).error) {
-        errorMessage.value =
-          (result as { error?: string }).error || "Failed to create playlist.";
-        return;
-      }
-
-      return result;
-    } catch (error) {
-      errorMessage.value = "An error occurred while creating the playlist.";
-    } finally {
-      isLoading.value = false;
-    }
+    return runPlaylistRequest<Playlist>(
+      () => createPlaylistRecord(name),
+      "An error occurred while creating the playlist."
+    );
   }
 
   // ✅ Add a song to a playlist
   async function addToPlaylist(
-    playlistId: string,
-    songId: string
-  ): Promise<boolean | void> {
-    if (!playlistId || !songId) return;
+    playlistId: number,
+    songId: number
+  ): Promise<boolean> {
+    if (!playlistId || !songId) return false;
 
-    isLoading.value = true;
-    errorMessage.value = "";
+    const result = await runPlaylistRequest(
+      () => addSongToPlaylistRecord(playlistId, songId),
+      "An error occurred while adding the song."
+    );
 
-    const token = await getAccessToken();
-    if (!token) {
-      errorMessage.value = "User not authenticated.";
-      return;
-    }
-
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/playlistRoutes/add-song`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ playlistId, songId }),
-        }
-      );
-
-      if (!response.ok) {
-        errorMessage.value = "Error adding song to playlist.";
-        return;
-      }
-
-      return true;
-    } catch (error) {
-      errorMessage.value = "An error occurred while adding the song.";
-    } finally {
-      isLoading.value = false;
-    }
+    return result !== null;
   }
 
   // ✅ Remove a song from a playlist
   async function removeFromPlaylist(
-    playlistId: string,
-    songId: string
-  ): Promise<boolean | void> {
-    if (!playlistId || !songId) return;
+    playlistId: number,
+    songId: number
+  ): Promise<boolean> {
+    if (!playlistId || !songId) return false;
 
-    isLoading.value = true;
-    errorMessage.value = "";
+    const result = await runPlaylistRequest(
+      () => removeSongFromPlaylistRecord(playlistId, songId),
+      "An error occurred while removing the song."
+    );
 
-    const token = await getAccessToken();
-    if (!token) {
-      errorMessage.value = "User not authenticated.";
-      return;
-    }
-
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/playlistRoutes/remove-song`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ playlistId, songId }),
-        }
-      );
-
-      if (!response.ok) {
-        errorMessage.value = "Error removing song from playlist.";
-        return;
-      }
-
-      return true;
-    } catch (error) {
-      errorMessage.value = "An error occurred while removing the song.";
-    } finally {
-      isLoading.value = false;
-    }
+    return result !== null;
   }
 
-  async function deletePlaylist(playlistId: string): Promise<boolean | void> {
-    if (!playlistId) return;
+  async function deletePlaylist(playlistId: number): Promise<boolean> {
+    if (!playlistId) return false;
 
-    isLoading.value = true;
-    errorMessage.value = "";
+    const result = await runPlaylistRequest(
+      () => deletePlaylistRecord(playlistId),
+      "An error occurred while deleting the playlist."
+    );
 
-    const token = await getAccessToken();
-    if (!token) {
-      errorMessage.value = "User not authenticated.";
-      return;
-    }
-
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/playlistRoutes/delete`,
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ playlistId }),
-        }
-      );
-
-      if (!response.ok) {
-        errorMessage.value = "Failed to delete playlist.";
-        return;
-      }
-
-      return true;
-    } catch (error) {
-      errorMessage.value = "An error occurred while deleting the playlist.";
-    } finally {
-      isLoading.value = false;
-    }
+    return result !== null;
   }
 
-  async function renamePlaylist(playlistId: string, newName: string): Promise<boolean | void> {
-    if (!playlistId || !newName.trim()) return;
-  
-    isLoading.value = true;
-    errorMessage.value = "";
-  
-    const token = await getAccessToken();
-    if (!token) {
-      errorMessage.value = "User not authenticated.";
-      return;
-    }
-  
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/playlistRoutes/rename`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ playlistId, newName }),
-        }
-      );
-  
-      if (!response.ok) {
-        errorMessage.value = "Failed to rename playlist.";
-        return;
-      }
-  
-      return true;
-    } catch (error) {
-      errorMessage.value = "An error occurred while renaming the playlist.";
-    } finally {
-      isLoading.value = false;
-    }
+  async function renamePlaylist(playlistId: number, newName: string): Promise<boolean> {
+    if (!playlistId || !newName.trim()) return false;
+
+    const result = await runPlaylistRequest(
+      () => renamePlaylistRecord(playlistId, newName),
+      "An error occurred while renaming the playlist."
+    );
+
+    return result !== null;
   }
 
   async function reorderPlaylistSongs(
-    playlistId: string,
-    songIds: string[]
-  ): Promise<boolean | void> {
-    if (!playlistId || !Array.isArray(songIds)) return;
-  
-    isLoading.value = true;
-    errorMessage.value = "";
-  
-    const token = await getAccessToken();
-    if (!token) {
-      errorMessage.value = "User not authenticated.";
-      return;
-    }
-  
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/playlistRoutes/reorder`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ playlistId, songIds }),
-        }
-      );
-  
-      if (!response.ok) {
-        errorMessage.value = "Failed to reorder songs.";
-        return;
-      }
-  
-      return true;
-    } catch (error) {
-      errorMessage.value = "An error occurred while reordering songs.";
-    } finally {
-      isLoading.value = false;
-    }
+    playlistId: number,
+    songIds: number[]
+  ): Promise<boolean> {
+    if (!playlistId || !Array.isArray(songIds)) return false;
+
+    const result = await runPlaylistRequest(
+      () => reorderPlaylistSongRecords(playlistId, songIds),
+      "An error occurred while reordering songs."
+    );
+
+    return result !== null;
   }
 
   return {

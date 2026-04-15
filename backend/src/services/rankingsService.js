@@ -1,13 +1,6 @@
 const pool = require("../config/db");
 const { getCache, setCache } = require("./cacheService");
 
-const scrapingStatus = {}; // ✅ Track ongoing scraping jobs
-
-// ✅ Get Scraping Status
-function getScrapeStatus(genreCode) {
-  return scrapingStatus[genreCode] || false;
-}
-
 /**
  * ✅ Determines if scraping is needed based on the last update timestamp and missing YouTube data.
  * @param {string} genreCode
@@ -92,4 +85,4 @@ async function getRankings(genreCode) {
 }
 
 // ✅ Export services
-module.exports = { getRankings, getScrapeStatus, shouldScrapeGenre };
+module.exports = { getRankings, shouldScrapeGenre };

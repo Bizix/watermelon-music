@@ -14,7 +14,7 @@ export async function fetchSongsByPlaylistId(playlistId: number) {
     console.error("❌ Failed to fetch songs for playlist:", error.message);
     throw new Error(error.message);
   }
-  return data.map(entry => ({
+  return (data || []).map((entry) => ({
     ...entry.song,
     _position: entry.position, // optional
   }));

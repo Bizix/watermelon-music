@@ -1,7 +1,6 @@
 const express = require("express");
 const { supabaseAdmin } = require("../config/supabaseAdmin");
 const verifySupabaseUser = require("../middlewares/verifySupabaseUser");
-const { deleteAllPlaylistsForUser } = require("../services/playlistService");
 
 const router = express.Router();
 
@@ -19,9 +18,6 @@ router.post("/delete-user", verifySupabaseUser, async (req, res) => {
   }
 
   try {
-    // ✅ Delete all playlist-related data
-    await deleteAllPlaylistsForUser(userId);
-
     // ✅ Optional: delete row in public.users table
     await supabaseAdmin.from("users").delete().eq("id", userId);
 

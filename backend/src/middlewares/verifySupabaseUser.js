@@ -1,6 +1,6 @@
-const jwt = require("jsonwebtoken");
+const { supabaseAdmin } = require("../config/supabaseAdmin");
 
-function verifySupabaseUser(req, res, next) {
+async function verifySupabaseUser(req, res, next) {
   const authHeader = req.headers["authorization"];
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({ error: "Missing or invalid authorization header" });
@@ -9,16 +9,20 @@ function verifySupabaseUser(req, res, next) {
   const token = authHeader.split(" ")[1];
 
   try {
-    const decoded = jwt.decode(token, { complete: true });
-    if (!decoded || !decoded.payload || !decoded.payload.sub) {
-      console.warn("❌ Invalid or malformed token:", token);
+    const {
+      data: { user },
+      error,
+    } = await supabaseAdmin.auth.getUser(token);
+
+    if (error || !user?.id) {
+      console.warn("❌ Invalid Supabase token:", error?.message || "Unknown auth error");
       return res.status(403).json({ error: "Invalid token" });
     }
 
-    req.authenticatedUserId = decoded.payload.sub;
+    req.authenticatedUserId = user.id;
     next();
   } catch (error) {
-    console.error("❌ Token decoding failed:", error);
+    console.error("❌ Token verification failed:", error);
     return res.status(403).json({ error: "Token verification failed" });
   }
 }

@@ -1,33 +1,40 @@
 {
   "dependencies": {
-    "@supabase/supabase-js": "^2.49.1",
-    "axios": "^1.7.9",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.7",
-    "express": "^4.21.2",
+    "@supabase/supabase-js": "^2.103.0",
+    "aromanize": "^0.1.5",
+    "axios": "^1.15.0",
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^5.2.1",
     "express-async-handler": "^1.2.0",
     "fast-levenshtein": "^3.0.0",
-    "helmet": "^8.0.0",
-    "ioredis": "^5.5.0",
-    "jsonwebtoken": "^9.0.2",
-    "morgan": "^1.10.0",
+    "helmet": "^8.1.0",
+    "morgan": "^1.10.1",
     "node-cron": "^3.0.3",
-    "pg": "^8.13.3",
-    "puppeteer": "^24.2.1",
-    "puppeteer-extra": "^3.3.6",
-    "puppeteer-extra-plugin-stealth": "^2.11.2",
-    "puppeteer-real-browser": "^1.4.2"
+    "pg": "^8.20.0",
+    "puppeteer": "^24.40.0",
+    "puppeteer-real-browser": "^1.4.4"
+  },
+  "overrides": {
+    "basic-ftp": "^5.2.2",
+    "brace-expansion": "^1.1.14",
+    "js-yaml": "^4.1.1",
+    "minimatch": "^3.1.5"
   },
   "name": "backend",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "check": "node --check src/index.js src/app.js src/routes/*.js src/services/*.js src/middlewares/*.js src/api/*.js src/config/*.js",
     "prestart": "npx puppeteer browsers install chrome",
     "start": "node src/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "NODE_ENV=test node --test tests/**/*.test.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": ""
+  "description": "",
+  "devDependencies": {
+    "supertest": "^7.2.2"
+  }
 }

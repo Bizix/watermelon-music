@@ -4,11 +4,8 @@ const {
   getLastGenreIndex,
   saveGenreIndex,
 } = require("../services/rotationService");
-const {
-  shouldScrapeGenre,
-  getRankings,
-} = require("../services/rankingsService");
-const { scrapeAndSaveGenre } = require("../services/scraperService");
+const { getRankings } = require("../services/rankingsService");
+const { queueGenreRefresh } = require("../services/chartRefreshService");
 
 const genreMap = {
   DM0000: "Top 100",
@@ -40,20 +37,20 @@ router.get("/cron", async (req, res) => {
   const lastIndex = await getLastGenreIndex();
   const genreCode = genreCodes[lastIndex];
   const genreName = genreMap[genreCode];
+  const nextIndex = (lastIndex + 1) % genreCodes.length;
 
   try {
-    const shouldScrape = await shouldScrapeGenre(genreCode);
+    const refresh = await queueGenreRefresh(genreCode, {
+      reason: "cron_refresh",
+    });
 
-    if (shouldScrape) {
-      console.log(`🔄 Scraping and saving ${genreName} (${genreCode})`);
-      await scrapeAndSaveGenre(genreCode);
+    if (refresh.promise) {
+      await refresh.promise;
     } else {
       console.log(`⏩ Skipping ${genreName} — up to date`);
+      await getRankings(genreCode); // warm cache if we only hit the DB path
     }
 
-    await getRankings(genreCode); // warm cache
-
-    const nextIndex = (lastIndex + 1) % genreCodes.length;
     await saveGenreIndex(nextIndex);
 
   } catch (err) {

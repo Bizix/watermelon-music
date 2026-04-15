@@ -2,6 +2,7 @@ const pool = require("../config/db");
 const { scrapeMelonCharts } = require("./scraper");
 const { fetchYouTubeUrl, resetYouTubeQuota } = require("../api/youtubeService");
 const { fetchSpotifyUrl } = require("../api/spotifyService");
+const { removeCache, setCache } = require("./cacheService");
 
 const genreMap = {
   DM0000: "Top 100",
@@ -110,6 +111,7 @@ async function updateStreamingUrlsForGenre(songs, platform) {
  */
 async function saveToDatabase(genreCode = "DM0000") {
   const client = await pool.connect();
+  let transactionStarted = false;
 
   try {
     // ✅ 2️⃣ Ensure genre exists in the database
@@ -145,6 +147,7 @@ async function saveToDatabase(genreCode = "DM0000") {
     const scrapedSongs = await scrapeMelonCharts(genreCode);
 
     await client.query("BEGIN"); // ✅ Start transaction
+    transactionStarted = true;
 
     // ✅ 5️⃣ Ensure all artists exist
     const existingArtistsRes = await client.query(
@@ -237,7 +240,6 @@ async function saveToDatabase(genreCode = "DM0000") {
       } catch (error) {
         console.error(`❌ Unexpected DB error while saving song:`, song);
         console.error(error);
-        await client.query("ROLLBACK");
         throw error;
       }
     
@@ -294,10 +296,13 @@ async function saveToDatabase(genreCode = "DM0000") {
     }
 
     await client.query("COMMIT"); // ✅ Commit transaction
+    transactionStarted = false;
 
     await client.query(`UPDATE genres SET last_updated = NOW() WHERE id = $1`, [
       genreId,
     ]);
+    setCache(`genre_last_updated_${genreCode}`, Date.now());
+    removeCache(genreCode);
 
     console.log(`✅ Successfully updated rankings for genre: ${genreCode}!`);
 
@@ -309,11 +314,13 @@ async function saveToDatabase(genreCode = "DM0000") {
     await updateStreamingUrlsForGenre(rankedSongs, "youtube");
     await updateStreamingUrlsForGenre(rankedSongs, "spotify");
 
-    // return updatedRankings;
+    return rankedSongs;
   } catch (error) {
-    await client.query("ROLLBACK");
+    if (transactionStarted) {
+      await client.query("ROLLBACK");
+    }
     console.error("❌ Error saving to database:", error);
-    return [];
+    throw error;
   } finally {
     client.release();
   }
