@@ -37,6 +37,7 @@
     "vue-tsc": "^3.2.6"
   },
   "overrides": {
+    "postcss": "^8.5.12",
     "micromatch": {
       "picomatch": "^2.3.2"
     }
